@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package test;
+
+option go_package = "github.com/pantopic/wazero-grpc/test;main";
+
+message TestRequest {
+  uint64 foo = 1;
+}
+message TestResponse {
+  uint64 bar = 1;
+}
