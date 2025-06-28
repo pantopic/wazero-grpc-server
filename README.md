@@ -41,8 +41,6 @@ Then you can import the guest SDK into your WASI module to receive gRPC requests
 package main
 
 import (
-	"unsafe"
-
 	"github.com/pantopic/wazero-grpc/grpc-server-go"
 )
 
@@ -51,7 +49,10 @@ func main() {}
 // ...
 ```
 
-The guest SDK is serialization format agnostic in order to provide users with more control over performance and binary size. See examples for serialization techniques:
+The [guest SDK](https://pkg.go.dev/github.com/pantopic/wazero-grpc/grpc-server-go) has no dependencies outside the Go std lib.
+The guest SDK is serialization format agnostic in order to provide users with more control over performance and binary size.
+
+See examples for serialization techniques:
 
 - [test-server](/test-server) uses `protoc-go-gen` for serialization, resulting in a large WASM binary (789k)
 - [test-server-easy](/test-server-easy) uses `easyproto` for manually-generated serialization, resulting in a small WASM binary (146k)

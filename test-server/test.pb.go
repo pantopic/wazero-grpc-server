@@ -118,7 +118,9 @@ const file_test_proto_rawDesc = "" +
 	"\vTestRequest\x12\x10\n" +
 	"\x03foo\x18\x01 \x01(\x04R\x03foo\" \n" +
 	"\fTestResponse\x12\x10\n" +
-	"\x03bar\x18\x01 \x01(\x04R\x03barB+Z)github.com/pantopic/wazero-grpc/test;mainb\x06proto3"
+	"\x03bar\x18\x01 \x01(\x04R\x03bar2>\n" +
+	"\vTestService\x12/\n" +
+	"\x04Test\x12\x11.test.TestRequest\x1a\x12.test.TestResponse\"\x00B2Z0github.com/pantopic/wazero-grpc/test-server;mainb\x06proto3"
 
 var (
 	file_test_proto_rawDescOnce sync.Once
@@ -138,8 +140,10 @@ var file_test_proto_goTypes = []any{
 	(*TestResponse)(nil), // 1: test.TestResponse
 }
 var file_test_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
+	0, // 0: test.TestService.Test:input_type -> test.TestRequest
+	1, // 1: test.TestService.Test:output_type -> test.TestResponse
+	1, // [1:2] is the sub-list for method output_type
+	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -158,7 +162,7 @@ func file_test_proto_init() {
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
-			NumServices:   0,
+			NumServices:   1,
 		},
 		GoTypes:           file_test_proto_goTypes,
 		DependencyIndexes: file_test_proto_depIdxs,

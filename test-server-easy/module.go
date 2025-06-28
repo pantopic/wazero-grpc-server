@@ -5,18 +5,27 @@ import (
 )
 
 func main() {
-	s := grpc.NewService(`test.Test`)
-	s.AddMethod(`Test`, test)
+	s := grpc.NewService(`test.TestService`)
+	s.AddMethod(`Test`, protoWrap(test, &TestRequest{}))
 }
 
-func test(in []byte) (out []byte, err error) {
-	var req TestRequest
-	if err = req.Unmarshal(in); err != nil {
+func test(req *TestRequest) (res *TestResponse, err error) {
+	return &TestResponse{
+		Bar: req.Foo,
+	}, nil
+}
+
+func protoWrap[Req Message, Res Message](fn func(Req) (Res, error), req Req) func([]byte) ([]byte, error) {
+	return func(in []byte) (out []byte, err error) {
+		err = req.Unmarshal(in)
+		if err != nil {
+			return []byte(err.Error()), grpc.ErrMalformed
+		}
+		res, err := fn(req)
+		if err != nil {
+			return []byte(err.Error()), grpc.ErrUnexpected
+		}
+		out = res.Marshal(out)
 		return
 	}
-	res := &TestResponse{
-		Bar: req.Foo,
-	}
-	out = res.Marshal(out)
-	return
 }

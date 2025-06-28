@@ -4,6 +4,11 @@ import (
 	"github.com/VictoriaMetrics/easyproto"
 )
 
+type Message interface {
+	Unmarshal([]byte) error
+	Marshal([]byte) []byte
+}
+
 var mp easyproto.MarshalerPool
 
 type TestRequest struct {

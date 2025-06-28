@@ -7,11 +7,17 @@ import (
 )
 
 func main() {
-	s := grpc.NewService(`test.Test`)
+	s := grpc.NewService(`test.TestService`)
 	s.AddMethod(`Test`, protoWrap(test, &TestRequest{}))
 }
 
-func protoWrap(fn func(proto.Message) (proto.Message, error), req proto.Message) func([]byte) ([]byte, error) {
+func test(req *TestRequest) (res *TestResponse, err error) {
+	return &TestResponse{
+		Bar: req.Foo,
+	}, nil
+}
+
+func protoWrap[Req proto.Message, Res proto.Message](fn func(Req) (Res, error), req Req) func([]byte) ([]byte, error) {
 	return func(in []byte) (out []byte, err error) {
 		err = req.UnmarshalVT(in)
 		if err != nil {
@@ -27,10 +33,4 @@ func protoWrap(fn func(proto.Message) (proto.Message, error), req proto.Message)
 		}
 		return
 	}
-}
-
-func test(req proto.Message) (res proto.Message, err error) {
-	req = req.(*TestRequest)
-	res = &TestResponse{}
-	return
 }
