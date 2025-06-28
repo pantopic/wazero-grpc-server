@@ -54,9 +54,9 @@ The guest SDK is serialization format agnostic in order to provide users with mo
 
 See examples for serialization techniques:
 
-- [test-server](/test-server) uses `protoc-go-gen` for serialization, resulting in a large WASM binary (789k)
-- [test-server-easy](/test-server-easy) uses `easyproto` for manually-generated serialization, resulting in a small WASM binary (146k)
-- [test-server-lite](/test-server-lite) uses `protobuf-go-lite` for auto-generated serialization also resulting in a small WASM binary (145k)
+- [test-server](/test-server) - `protoc-go-gen` auto-generated serialization (`790kb` binary)
+- [test-server-easy](/test-server-easy) - `easyproto` manually-generated serialization (`146kb` binary)
+- [test-server-lite](/test-server-lite) - `protobuf-go-lite` auto-generated serialization (`142kb` binary)
 
 Any of these approaches and others will work for protobuf serialization.
 
