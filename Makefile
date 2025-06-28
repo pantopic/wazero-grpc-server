@@ -22,6 +22,8 @@ wasm-server-lite:
 wasm-server-lite-prod:
 	@cd test-server-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-server-lite.prod.wasm -no-debug
 
+wasm-all: wasm-server wasm-server-easy wasm-server-lite wasm-server-prod wasm-server-easy-prod wasm-server-lite-prod
+
 test:
 	@cd host && go test .
 
