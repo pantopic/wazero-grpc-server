@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package test;
 
-option go_package = "github.com/pantopic/wazero-grpc/test-server-lite;main";
+option go_package = "github.com/pantopic/wazero-grpc-server/test-lite;main";
 
 service TestService {
   rpc Test(TestRequest) returns (TestResponse) {}

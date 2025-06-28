@@ -1,4 +1,4 @@
-package grpc
+package grpc_server
 
 func NewService(name string) *service {
 	services[name] = &service{

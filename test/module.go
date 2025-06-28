@@ -1,13 +1,13 @@
 package main
 
 import (
-	proto "github.com/aperturerobotics/protobuf-go-lite"
+	"google.golang.org/protobuf/proto"
 
-	"github.com/pantopic/wazero-grpc/grpc-server-go"
+	"github.com/pantopic/wazero-grpc-server/grpc-server-go"
 )
 
 func main() {
-	s := grpc.NewService(`test.TestService`)
+	s := grpc_server.NewService(`test.TestService`)
 	s.AddMethod(`Test`, protoWrap(test, &TestRequest{}))
 }
 
@@ -19,17 +19,17 @@ func test(req *TestRequest) (res *TestResponse, err error) {
 
 func protoWrap[Req proto.Message, Res proto.Message](fn func(Req) (Res, error), req Req) func([]byte) ([]byte, error) {
 	return func(in []byte) (out []byte, err error) {
-		err = req.UnmarshalVT(in)
+		err = proto.Unmarshal(in, req)
 		if err != nil {
-			return []byte(err.Error()), grpc.ErrMalformed
+			return []byte(err.Error()), grpc_server.ErrMalformed
 		}
 		res, err := fn(req)
 		if err != nil {
-			return []byte(err.Error()), grpc.ErrUnexpected
+			return []byte(err.Error()), grpc_server.ErrUnexpected
 		}
-		out, err = res.MarshalVT()
+		out, err = proto.Marshal(res)
 		if err != nil {
-			return []byte(err.Error()), grpc.ErrMarshal
+			return []byte(err.Error()), grpc_server.ErrMarshal
 		}
 		return
 	}

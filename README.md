@@ -1,4 +1,4 @@
-# Wazero gRPC
+# Wazero gRPC Server
 
 A [wazero](https://pkg.go.dev/github.com/tetratelabs/wazero) host module, ABI and guest SDK providing [gRPC](https://grpc.io/) for WASI modules.
 
@@ -15,7 +15,7 @@ import (
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 
-	"github.com/pantopic/wazero-grpc/host"
+	"github.com/pantopic/wazero-grpc-server/host"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 	r := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig())
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 
-	module := wazero_grpc.New()
+	module := wazero_grpc_server.New()
 	module.Register(ctx, r)
 
 	// ...
@@ -41,7 +41,7 @@ Then you can import the guest SDK into your WASI module to receive gRPC requests
 package main
 
 import (
-	"github.com/pantopic/wazero-grpc/grpc-server-go"
+	"github.com/pantopic/wazero-grpc-server/grpc-server-go"
 )
 
 func main() {}
@@ -54,9 +54,9 @@ The guest SDK is serialization format agnostic in order to provide users with mo
 
 See examples for serialization techniques:
 
-- [test-server](/test-server) - `protoc-go-gen` auto-generated serialization (`790kb` binary)
-- [test-server-easy](/test-server-easy) - `easyproto` manually-generated serialization (`146kb` binary)
-- [test-server-lite](/test-server-lite) - `protobuf-go-lite` auto-generated serialization (`142kb` binary)
+- [test](/test) - `protoc-go-gen` auto-generated serialization (`790kb` binary)
+- [test-easy](/test-easy) - `easyproto` manually-generated serialization (`146kb` binary)
+- [test-lite](/test-lite) - `protobuf-go-lite` auto-generated serialization (`142kb` binary)
 
 Any of these approaches and others will work for protobuf serialization.
 

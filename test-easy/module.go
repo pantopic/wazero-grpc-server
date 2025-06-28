@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/pantopic/wazero-grpc/grpc-server-go"
+	"github.com/pantopic/wazero-grpc-server/grpc-server-go"
 )
 
 func main() {
-	s := grpc.NewService(`test.TestService`)
+	s := grpc_server.NewService(`test.TestService`)
 	s.AddMethod(`Test`, protoWrap(test, &TestRequest{}))
 }
 
@@ -19,11 +19,11 @@ func protoWrap[Req Message, Res Message](fn func(Req) (Res, error), req Req) fun
 	return func(in []byte) (out []byte, err error) {
 		err = req.Unmarshal(in)
 		if err != nil {
-			return []byte(err.Error()), grpc.ErrMalformed
+			return []byte(err.Error()), grpc_server.ErrMalformed
 		}
 		res, err := fn(req)
 		if err != nil {
-			return []byte(err.Error()), grpc.ErrUnexpected
+			return []byte(err.Error()), grpc_server.ErrUnexpected
 		}
 		out = res.Marshal(out)
 		return

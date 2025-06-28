@@ -120,7 +120,7 @@ const file_test_proto_rawDesc = "" +
 	"\fTestResponse\x12\x10\n" +
 	"\x03bar\x18\x01 \x01(\x04R\x03bar2>\n" +
 	"\vTestService\x12/\n" +
-	"\x04Test\x12\x11.test.TestRequest\x1a\x12.test.TestResponse\"\x00B2Z0github.com/pantopic/wazero-grpc/test-server;mainb\x06proto3"
+	"\x04Test\x12\x11.test.TestRequest\x1a\x12.test.TestResponse\"\x00B2Z0github.com/pantopic/wazero-grpc-server/test;mainb\x06proto3"
 
 var (
 	file_test_proto_rawDescOnce sync.Once

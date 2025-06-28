@@ -1,4 +1,4 @@
-package grpc
+package grpc_server
 
 const (
 	errCodeEmpty uint32 = iota
