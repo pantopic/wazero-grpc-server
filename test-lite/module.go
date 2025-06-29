@@ -10,6 +10,7 @@ import (
 func main() {
 	s := grpc_server.NewService(`test.TestService`)
 	s.AddMethod(`Test`, protoWrap(test, &pb.TestRequest{}))
+	s.AddMethod(`Retest`, protoWrap(retest, &pb.RetestRequest{}))
 }
 
 func test(req *pb.TestRequest) (res *pb.TestResponse, err error) {
@@ -18,7 +19,13 @@ func test(req *pb.TestRequest) (res *pb.TestResponse, err error) {
 	}, nil
 }
 
-func protoWrap[Req proto.Message, Res proto.Message](fn func(Req) (Res, error), req Req) func([]byte) ([]byte, error) {
+func retest(req *pb.RetestRequest) (res *pb.RetestResponse, err error) {
+	return &pb.RetestResponse{
+		Foo: req.Bar,
+	}, nil
+}
+
+func protoWrap[ReqType proto.Message, ResType proto.Message](fn func(ReqType) (ResType, error), req ReqType) func([]byte) ([]byte, error) {
 	return func(in []byte) (out []byte, err error) {
 		err = req.UnmarshalVT(in)
 		if err != nil {

@@ -15,8 +15,8 @@ import (
 )
 
 type grpcHandler struct {
-	mod        api.Module
-	ctxKeyMeta string
+	mod  api.Module
+	meta *meta
 }
 
 func (h *grpcHandler) handler(srv any, serverStream grpc.ServerStream) error {
@@ -83,7 +83,7 @@ func (h *grpcHandler) forwardServerToClient(src grpc.ServerStream, dst grpc.Clie
 		f := &emptypb.Empty{}
 		for i := 0; ; i++ {
 			if err := src.RecvMsg(f); err != nil {
-				ret <- err // this can be io.EOF which is happy case
+				ret <- err
 				break
 			}
 			if err := dst.SendMsg(f); err != nil {
@@ -96,5 +96,5 @@ func (h *grpcHandler) forwardServerToClient(src grpc.ServerStream, dst grpc.Clie
 }
 
 func (h *grpcHandler) clientStream(ctx context.Context, fullMethodName string) grpc.ClientStream {
-	return newClientStream(ctx, h.mod, get[*meta](ctx, h.ctxKeyMeta), fullMethodName)
+	return newClientStream(ctx, h.mod, h.meta, fullMethodName)
 }

@@ -68,9 +68,11 @@ func getMethod() []byte {
 
 //export grpcCall
 func grpcCall() {
-	parts := strings.Split(string(getMethod()), "/")
-	if len(parts) < 3 {
-		errCode = errCodeUnrecognized
+	m := string(getMethod())
+	parts := strings.Split(m, "/")
+	if len(parts) != 3 {
+		errCode = errCodeInvalid
+		setMsg([]byte(`Invalid method: ` + m))
 		return
 	}
 	service, ok := services[parts[1]]

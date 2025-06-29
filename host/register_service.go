@@ -8,8 +8,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-func registerService(s *grpc.Server, m api.Module, ctxKeyMeta, serviceName string, methods []string) {
-	h := &grpcHandler{m, ctxKeyMeta}
+func registerService(s *grpc.Server, m api.Module, meta *meta, serviceName string, methods []string) {
+	h := &grpcHandler{m, meta}
 	fakeDesc := &grpc.ServiceDesc{
 		ServiceName: serviceName,
 		HandlerType: (*any)(nil),

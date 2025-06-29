@@ -109,6 +109,94 @@ func (x *TestResponse) GetBar() uint64 {
 	return 0
 }
 
+type RetestRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Bar           uint64                 `protobuf:"varint,1,opt,name=bar,proto3" json:"bar,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RetestRequest) Reset() {
+	*x = RetestRequest{}
+	mi := &file_test_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RetestRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RetestRequest) ProtoMessage() {}
+
+func (x *RetestRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_test_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RetestRequest.ProtoReflect.Descriptor instead.
+func (*RetestRequest) Descriptor() ([]byte, []int) {
+	return file_test_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RetestRequest) GetBar() uint64 {
+	if x != nil {
+		return x.Bar
+	}
+	return 0
+}
+
+type RetestResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Foo           uint64                 `protobuf:"varint,1,opt,name=foo,proto3" json:"foo,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RetestResponse) Reset() {
+	*x = RetestResponse{}
+	mi := &file_test_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RetestResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RetestResponse) ProtoMessage() {}
+
+func (x *RetestResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_test_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RetestResponse.ProtoReflect.Descriptor instead.
+func (*RetestResponse) Descriptor() ([]byte, []int) {
+	return file_test_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RetestResponse) GetFoo() uint64 {
+	if x != nil {
+		return x.Foo
+	}
+	return 0
+}
+
 var File_test_proto protoreflect.FileDescriptor
 
 const file_test_proto_rawDesc = "" +
@@ -118,9 +206,14 @@ const file_test_proto_rawDesc = "" +
 	"\vTestRequest\x12\x10\n" +
 	"\x03foo\x18\x01 \x01(\x04R\x03foo\" \n" +
 	"\fTestResponse\x12\x10\n" +
-	"\x03bar\x18\x01 \x01(\x04R\x03bar2>\n" +
+	"\x03bar\x18\x01 \x01(\x04R\x03bar\"!\n" +
+	"\rRetestRequest\x12\x10\n" +
+	"\x03bar\x18\x01 \x01(\x04R\x03bar\"\"\n" +
+	"\x0eRetestResponse\x12\x10\n" +
+	"\x03foo\x18\x01 \x01(\x04R\x03foo2u\n" +
 	"\vTestService\x12/\n" +
-	"\x04Test\x12\x11.test.TestRequest\x1a\x12.test.TestResponse\"\x00B0Z.github.com/pantopic/wazero-grpc-server/test;pbb\x06proto3"
+	"\x04Test\x12\x11.test.TestRequest\x1a\x12.test.TestResponse\"\x00\x125\n" +
+	"\x06Retest\x12\x13.test.RetestRequest\x1a\x14.test.RetestResponse\"\x00B0Z.github.com/pantopic/wazero-grpc-server/test;pbb\x06proto3"
 
 var (
 	file_test_proto_rawDescOnce sync.Once
@@ -134,16 +227,20 @@ func file_test_proto_rawDescGZIP() []byte {
 	return file_test_proto_rawDescData
 }
 
-var file_test_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_test_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_test_proto_goTypes = []any{
-	(*TestRequest)(nil),  // 0: test.TestRequest
-	(*TestResponse)(nil), // 1: test.TestResponse
+	(*TestRequest)(nil),    // 0: test.TestRequest
+	(*TestResponse)(nil),   // 1: test.TestResponse
+	(*RetestRequest)(nil),  // 2: test.RetestRequest
+	(*RetestResponse)(nil), // 3: test.RetestResponse
 }
 var file_test_proto_depIdxs = []int32{
 	0, // 0: test.TestService.Test:input_type -> test.TestRequest
-	1, // 1: test.TestService.Test:output_type -> test.TestResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: test.TestService.Retest:input_type -> test.RetestRequest
+	1, // 2: test.TestService.Test:output_type -> test.TestResponse
+	3, // 3: test.TestService.Retest:output_type -> test.RetestResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -160,7 +257,7 @@ func file_test_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_test_proto_rawDesc), len(file_test_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

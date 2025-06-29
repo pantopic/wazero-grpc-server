@@ -3,6 +3,7 @@ package wazero_grpc_server
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
@@ -55,13 +56,18 @@ func (cs *clientStream) SendMsg(m any) (err error) {
 }
 
 func (cs *clientStream) RecvMsg(m any) (err error) {
-	pm, ok := m.(proto.Message)
-	if !ok {
-		return fmt.Errorf("Invalid message")
-	}
 	select {
-	case <-cs.ready:
-		err = proto.Unmarshal(msg(cs.mod, cs.meta), pm)
+	case _, ok := <-cs.ready:
+		if !ok {
+			return io.EOF
+		}
+		if ferr := getError(cs.mod, cs.meta); ferr != nil {
+			ferr.msg += `: ` + string(msg(cs.mod, cs.meta))
+			return ferr
+		}
+		b := msg(cs.mod, cs.meta)
+		err = proto.Unmarshal(b, m.(proto.Message))
+		close(cs.ready)
 	case <-cs.ctx.Done():
 	}
 	return

@@ -54,18 +54,6 @@ func (p *module) Register(ctx context.Context, r wazero.Runtime) (err error) {
 	return
 }
 
-// RegisterService attaches the grpc service(s) to the grpc server
-// Called once before server open, usually given a module instance pool
-func (p *module) RegisterService(ctx context.Context, s *grpc.Server, m api.Module) context.Context {
-	meta := get[*meta](ctx, p.ctxKeyMeta)
-	// msg = "/service.1.name/method1,method2,method3/service.2.name/method1,method2"
-	parts := strings.Split(string(msg(m, meta)), "/")
-	for i := 1; i+2 <= len(parts); i += 2 {
-		registerService(s, m, p.ctxKeyMeta, parts[i], strings.Split(parts[i+1], ","))
-	}
-	return context.WithValue(ctx, p.ctxKeyServer, s)
-}
-
 // InitContext populates the meta page in context for a given module instance
 // Called per module instance immediately after module instantiation
 func (p *module) InitContext(ctx context.Context, m api.Module) (context.Context, error) {
@@ -83,6 +71,18 @@ func (p *module) InitContext(ctx context.Context, m api.Module) (context.Context
 	meta.ptrMsg, _ = m.Memory().ReadUint32Le(ptr + 20)
 	meta.ptrErrCode, _ = m.Memory().ReadUint32Le(ptr + 24)
 	return context.WithValue(ctx, p.ctxKeyMeta, meta), nil
+}
+
+// RegisterService attaches the grpc service(s) to the grpc server
+// Called once before server open, usually given a module instance pool
+func (p *module) RegisterService(ctx context.Context, s *grpc.Server, m api.Module) context.Context {
+	meta := get[*meta](ctx, p.ctxKeyMeta)
+	// msg = "/service.1.name/method1,method2,method3/service.2.name/method1,method2"
+	parts := strings.Split(string(msg(m, meta)), "/")
+	for i := 1; i+2 <= len(parts); i += 2 {
+		registerService(s, m, meta, parts[i], strings.Split(parts[i+1], ","))
+	}
+	return context.WithValue(ctx, p.ctxKeyServer, s)
 }
 
 func (p *module) Stop() (err error) {
@@ -105,13 +105,17 @@ func method(m api.Module, meta *meta) []byte {
 	return read(m, meta.ptrMethod, meta.ptrMethodLen, meta.ptrMethodMax)
 }
 
+func errCode(m api.Module, meta *meta) uint32 {
+	return readUint32(m, meta.ptrErrCode)
+}
+
 func methodBuf(m api.Module, meta *meta) []byte {
 	return read(m, meta.ptrMethod, 0, meta.ptrMethodMax)
 }
 
 func setMethod(m api.Module, meta *meta, method []byte) {
-	m.Memory().WriteUint32Le(meta.ptrMethodLen, uint32(len(method)))
 	copy(methodBuf(m, meta)[:len(method)], method)
+	writeUint32(m, meta.ptrMethodLen, uint32(len(method)))
 }
 
 func msg(m api.Module, meta *meta) []byte {
@@ -123,8 +127,15 @@ func msgBuf(m api.Module, meta *meta) []byte {
 }
 
 func setMsg(m api.Module, meta *meta, msg []byte) {
-	m.Memory().WriteUint32Le(meta.ptrMethodLen, uint32(len(msg)))
 	copy(msgBuf(m, meta)[:len(msg)], msg)
+	writeUint32(m, meta.ptrMsgLen, uint32(len(msg)))
+}
+
+func getError(m api.Module, meta *meta) *Error {
+	if err, ok := errorsByCode[errCode(m, meta)]; ok {
+		return err
+	}
+	return nil
 }
 
 func read(m api.Module, ptrData, ptrLen, ptrMax uint32) (buf []byte) {

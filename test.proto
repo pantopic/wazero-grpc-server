@@ -6,6 +6,7 @@ option go_package = "github.com/pantopic/wazero-grpc-server/test;pb";
 
 service TestService {
   rpc Test(TestRequest) returns (TestResponse) {}
+  rpc Retest(RetestRequest) returns (RetestResponse) {}
 }
 
 message TestRequest {
@@ -13,4 +14,11 @@ message TestRequest {
 }
 message TestResponse {
   uint64 bar = 1;
+}
+
+message RetestRequest {
+  uint64 bar = 1;
+}
+message RetestResponse {
+  uint64 foo = 1;
 }
