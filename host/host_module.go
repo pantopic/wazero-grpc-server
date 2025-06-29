@@ -26,7 +26,7 @@ type meta struct {
 	ptrMsg       uint32
 }
 
-type module struct {
+type hostModule struct {
 	sync.RWMutex
 
 	module       api.Module
@@ -34,8 +34,8 @@ type module struct {
 	ctxKeyServer string
 }
 
-func New(opts ...Option) *module {
-	p := &module{
+func New(opts ...Option) *hostModule {
+	p := &hostModule{
 		ctxKeyMeta:   DefaultCtxKeyMeta,
 		ctxKeyServer: DefaultCtxKeyServer,
 	}
@@ -47,7 +47,7 @@ func New(opts ...Option) *module {
 
 // Register instantiates the host module, making it available to all module instances in this runtime
 // Called once after a runtime is created, usually on startup
-func (p *module) Register(ctx context.Context, r wazero.Runtime) (err error) {
+func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error) {
 	builder := r.NewHostModuleBuilder("grpc")
 	// TODO - Add callbacks (i.e. Watch message emission)
 	p.module, err = builder.Instantiate(ctx)
@@ -56,7 +56,7 @@ func (p *module) Register(ctx context.Context, r wazero.Runtime) (err error) {
 
 // InitContext populates the meta page in context for a given module instance
 // Called per module instance immediately after module instantiation
-func (p *module) InitContext(ctx context.Context, m api.Module) (context.Context, error) {
+func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Context, error) {
 	stack, err := m.ExportedFunction(`grpc`).Call(ctx)
 	if err != nil {
 		return ctx, err
@@ -75,7 +75,7 @@ func (p *module) InitContext(ctx context.Context, m api.Module) (context.Context
 
 // RegisterService attaches the grpc service(s) to the grpc server
 // Called once before server open, usually given a module instance pool
-func (p *module) RegisterService(ctx context.Context, s *grpc.Server, m api.Module) context.Context {
+func (p *hostModule) RegisterService(ctx context.Context, s *grpc.Server, m api.Module) context.Context {
 	meta := get[*meta](ctx, p.ctxKeyMeta)
 	// msg = "/service.1.name/method1,method2,method3/service.2.name/method1,method2"
 	parts := strings.Split(string(msg(m, meta)), "/")
@@ -85,11 +85,11 @@ func (p *module) RegisterService(ctx context.Context, s *grpc.Server, m api.Modu
 	return context.WithValue(ctx, p.ctxKeyServer, s)
 }
 
-func (p *module) Stop() (err error) {
+func (p *hostModule) Stop() (err error) {
 	return
 }
 
-func (p *module) server(ctx context.Context) *grpc.Server {
+func (p *hostModule) server(ctx context.Context) *grpc.Server {
 	return get[*grpc.Server](ctx, p.ctxKeyServer)
 }
 

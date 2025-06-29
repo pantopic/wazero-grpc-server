@@ -25,5 +25,11 @@ jobs:
     - name: Build WASM
       run: cd test && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test.wasm
 
+    - name: Build WASM Easy
+      run: cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-easy.wasm
+
+    - name: Build WASM Lite
+      run: cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-lite.wasm
+
     - name: Test
       run: cd host && go test . -v -cover
