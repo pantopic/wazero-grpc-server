@@ -50,6 +50,9 @@ func TestHostModule(t *testing.T) {
 		{`testWasm`, testWasm},
 		{`testWasmEasy`, testWasmEasy},
 		{`testWasmLite`, testWasmLite},
+		{`testWasmProd`, testWasmProd},
+		{`testWasmProdEasy`, testWasmProdEasy},
+		{`testWasmProdLite`, testWasmProdLite},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			compiled, err := r.CompileModule(ctx, tc.wasm)
