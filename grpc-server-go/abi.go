@@ -16,10 +16,10 @@ var (
 	msg       = make([]byte, int(msgMax))
 	meta      = make([]uint32, 7)
 
-	services = map[string]*service{}
+	services = map[string]*Service{}
 )
 
-type service struct {
+type Service struct {
 	handlers map[string]handler
 }
 
