@@ -29,17 +29,17 @@ type handler func([]byte) ([]byte, error)
 func grpc() (res uint32) {
 	meta[0] = uint32(uintptr(unsafe.Pointer(&methodMax)))
 	meta[1] = uint32(uintptr(unsafe.Pointer(&methodLen)))
-	meta[2] = uint32(uintptr(unsafe.Pointer(&msgMax)))
-	meta[3] = uint32(uintptr(unsafe.Pointer(&msgLen)))
-	meta[4] = uint32(uintptr(unsafe.Pointer(&errCode)))
+	meta[2] = uint32(uintptr(unsafe.Pointer(&method[0])))
+	meta[3] = uint32(uintptr(unsafe.Pointer(&msgMax)))
+	meta[4] = uint32(uintptr(unsafe.Pointer(&msgLen)))
 	meta[5] = uint32(uintptr(unsafe.Pointer(&msg[0])))
-	meta[6] = uint32(uintptr(unsafe.Pointer(&method[0])))
-	msg = msg[:0]
+	meta[6] = uint32(uintptr(unsafe.Pointer(&errCode)))
 	var serviceNames []string
 	for k := range services {
 		serviceNames = append(serviceNames, k)
 	}
 	sort.Strings(serviceNames)
+	msg = msg[:0]
 	for _, name := range serviceNames {
 		msg = append(msg, []byte("/"+name+"/")...)
 		var methods []string
@@ -49,6 +49,7 @@ func grpc() (res uint32) {
 		sort.Strings(methods)
 		msg = append(msg, []byte(strings.Join(methods, ","))...)
 	}
+	msgLen = uint32(len(msg))
 	return uint32(uintptr(unsafe.Pointer(&meta[0])))
 }
 

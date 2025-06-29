@@ -1,6 +1,6 @@
 # Wazero gRPC Server
 
-A [wazero](https://pkg.go.dev/github.com/tetratelabs/wazero) host module, ABI and guest SDK providing [gRPC](https://grpc.io/) for WASI modules.
+A [wazero](https://pkg.go.dev/github.com/tetratelabs/wazero) host module, ABI and guest SDK enabling WASI modules to register as [gRPC](https://grpc.io/) services.
 
 ## Host Module
 

@@ -1,0 +1,37 @@
+name: gocover
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: stable
+
+    - name: Set up Tinygo
+      uses: acifani/setup-tinygo@v2
+      with:
+        tinygo-version: 0.38.0
+
+    - name: Build WASM
+      run: cd test-server && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-server.wasm
+
+    - name: Cover Host
+      run: cd host && go test . -coverprofile coverage.out
+
+    - name: Update Host coverage badge
+      uses: ncruces/go-coverage-report@v0.3.1
+      with:
+        coverage-file: coverage.out
+        module-dir: host
+        output-dir: host
+      continue-on-error: true
