@@ -100,7 +100,7 @@ func protoWrap[ReqType proto.Message, ResType proto.Message](fn func(ReqType) (R
 ```
 
 The [guest SDK](https://pkg.go.dev/github.com/pantopic/wazero-grpc-server/grpc-server-go) has no dependencies outside the Go std lib.
-The guest SDK is serialization agnostic in order to provide more control over performance, compile time and binary size.
+The guest SDK is serialization agnostic in order to provide users with more control over performance, compile time and binary size.
 
 See examples for protobuf message serialization options:
 
