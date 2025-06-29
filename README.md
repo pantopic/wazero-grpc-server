@@ -12,11 +12,19 @@ First register the host module with the runtime
 
 ```go
 import (
+	"context"
+	_ "embed"
+	"net"
+
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+	"google.golang.org/grpc"
 
 	"github.com/pantopic/wazero-grpc-server/host"
 )
+
+//go:embed test\.wasm
+var wasm []byte
 
 func main() {
 	ctx := context.Background()
@@ -25,6 +33,13 @@ func main() {
 
 	module := wazero_grpc_server.New()
 	module.Register(ctx, r)
+
+	mod, _ := r.Instantiate(ctx, wasm)
+	hostModule.RegisterService(ctx, s, mod)
+
+	lis, _ := net.Listen(`tcp`, `:8000`)
+	s := grpc.NewServer()
+	s.Serve(lis)
 
 	// ...
 }
@@ -65,7 +80,23 @@ func retest(req *pb.RetestRequest) (res *pb.RetestResponse, err error) {
 	}, nil
 }
 
-// ...
+func protoWrap[ReqType proto.Message, ResType proto.Message](fn func(ReqType) (ResType, error), req ReqType) func([]byte) ([]byte, error) {
+	return func(in []byte) (out []byte, err error) {
+		err = proto.Unmarshal(in, req)
+		if err != nil {
+			return []byte(err.Error()), grpc_server.ErrMalformed
+		}
+		res, err := fn(req)
+		if err != nil {
+			return []byte(err.Error()), grpc_server.ErrUnexpected
+		}
+		out, err = proto.Marshal(res)
+		if err != nil {
+			return []byte(err.Error()), grpc_server.ErrMarshal
+		}
+		return
+	}
+}
 ```
 
 The [guest SDK](https://pkg.go.dev/github.com/pantopic/wazero-grpc-server/grpc-server-go) has no dependencies outside the Go std lib.
