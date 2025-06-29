@@ -1,3 +1,3 @@
-# test-server
+# test
 
-The `test-server` package uses standard `protoc-go-gen` output for protobuf serialization.
+The `test` package uses standard `protoc-go-gen` output for protobuf serialization.
