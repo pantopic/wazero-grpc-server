@@ -4,9 +4,9 @@ A [wazero](https://pkg.go.dev/github.com/tetratelabs/wazero) host module, ABI an
 
 ## Host Module
 
-[![Go Reference](https://godoc.org/github.com/pantopic/wazero-grpc/host?status.svg)](https://godoc.org/github.com/pantopic/wazero-grpc/host)
-[![Go Report Card](https://goreportcard.com/badge/github.com/pantopic/wazero-grpc/host)](https://goreportcard.com/report/github.com/pantopic/wazero-grpc/host)
-[![Go Coverage](https://github.com/pantopic/wazero-grpc/wiki/host/coverage.svg)](https://raw.githack.com/wiki/pantopic/wazero-grpc/host/coverage.html)
+[![Go Reference](https://godoc.org/github.com/pantopic/wazero-grpc-server/host?status.svg)](https://godoc.org/github.com/pantopic/wazero-grpc-server/host)
+[![Go Report Card](https://goreportcard.com/badge/github.com/pantopic/wazero-grpc-server/host)](https://goreportcard.com/report/github.com/pantopic/wazero-grpc-server/host)
+[![Go Coverage](https://github.com/pantopic/wazero-grpc-server/wiki/host/coverage.svg)](https://raw.githack.com/wiki/pantopic/wazero-grpc-server/host/coverage.html)
 
 First register the host module with the runtime
 
@@ -32,8 +32,8 @@ func main() {
 
 ## Guest SDK (Go)
 
-[![Go Reference](https://godoc.org/github.com/pantopic/wazero-grpc/grpc-go?status.svg)](https://godoc.org/github.com/pantopic/wazero-grpc/grpc-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/pantopic/wazero-grpc/grpc-go)](https://goreportcard.com/report/github.com/pantopic/wazero-grpc/grpc-go)
+[![Go Reference](https://godoc.org/github.com/pantopic/wazero-grpc-server/grpc-server-go?status.svg)](https://godoc.org/github.com/pantopic/wazero-grpc-server/grpc-server-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/pantopic/wazero-grpc-server/grpc-server-go)](https://goreportcard.com/report/github.com/pantopic/wazero-grpc-server/grpc-server-go)
 
 Then you can import the guest SDK into your WASI module to receive gRPC requests from WASM.
 
