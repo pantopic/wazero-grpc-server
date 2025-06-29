@@ -2,7 +2,6 @@ package wazero_grpc_server
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/tetratelabs/wazero/api"
@@ -40,11 +39,7 @@ func (cs *clientStream) Context() context.Context {
 }
 
 func (cs *clientStream) SendMsg(m any) (err error) {
-	pm, ok := m.(proto.Message)
-	if !ok {
-		return fmt.Errorf("Invalid message")
-	}
-	msg, err := proto.Marshal(pm)
+	msg, err := proto.Marshal(m.(proto.Message))
 	if err != nil {
 		panic(err)
 	}

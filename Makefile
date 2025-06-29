@@ -8,24 +8,29 @@ wasm:
 	@cd test && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test.wasm
 
 wasm-prod:
-	@cd test && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test.prod.wasm -no-debug
+	@cd test && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=conservative -scheduler=none -o ../host/test.prod.wasm -no-debug
 
 wasm-easy:
 	@cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-easy.wasm
 
 wasm-easy-prod:
-	@cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-easy.prod.wasm -no-debug
+	@cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=conservative -scheduler=none -o ../host/test-easy.prod.wasm -no-debug
 
 wasm-lite:
 	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-lite.wasm
 
 wasm-lite-prod:
-	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-lite.prod.wasm -no-debug
+	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=conservative -scheduler=none -o ../host/test-lite.prod.wasm -no-debug
 
 wasm-all: wasm wasm-easy wasm-lite wasm-prod wasm-easy-prod wasm-lite-prod
 
+wasm-all-prod: wasm-prod wasm-easy-prod wasm-lite-prod
+
 test:
 	@cd host && go test .
+
+bench:
+	cd host && go test -bench=. -v -run=Benchmark.*
 
 cover:
 	@mkdir -p _dist

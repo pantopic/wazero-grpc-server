@@ -68,16 +68,16 @@ func retest(req *pb.RetestRequest) (res *pb.RetestResponse, err error) {
 // ...
 ```
 
-The [guest SDK](https://pkg.go.dev/github.com/pantopic/wazero-grpc/grpc-server-go) has no dependencies outside the Go std lib.
-The guest SDK is serialization agnostic in order to provide users with more control over performance, compile time and binary size.
+The [guest SDK](https://pkg.go.dev/github.com/pantopic/wazero-grpc-server/grpc-server-go) has no dependencies outside the Go std lib.
+The guest SDK is serialization agnostic in order to provide more control over performance, compile time and binary size.
 
 See examples for protobuf message serialization options:
 
-- [test](/test) - `protoc-go-gen` auto-generated serialization (`792kb` binary, `15s` build time)
-- [test-easy](/test-easy) - `easyproto` manually-generated serialization (`147kb` binary, `3s` build time)
-- [test-lite](/test-lite) - `protobuf-go-lite` auto-generated serialization (`146kb` binary, `3s` build time)
+- [test](/test) - `protoc-go-gen` auto-generated (`627kb` binary, `15s` build time)
+- [test-easy](/test-easy) - `easyproto` manually-generated (`107kb` binary, `3s` build time)
+- [test-lite](/test-lite) - `protobuf-go-lite` auto-generated (`105kb` binary, `3s` build time, recommended)
 
-Any of these options and others will work for protobuf serialization.
+Any of these options and others can be used for protobuf serialization in WASM.
 
 ## Roadmap
 

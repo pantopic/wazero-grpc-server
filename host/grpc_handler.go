@@ -48,6 +48,7 @@ func (h *grpcHandler) handler(srv any, serverStream grpc.ServerStream) error {
 	}
 	return status.Errorf(codes.Internal, "gRPC proxying should never reach this stage.")
 }
+
 func (h *grpcHandler) forwardClientToServer(src grpc.ClientStream, dst grpc.ServerStream) chan error {
 	ret := make(chan error, 1)
 	go func() {

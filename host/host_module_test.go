@@ -111,3 +111,64 @@ func TestHostModule(t *testing.T) {
 		})
 	}
 }
+
+//go:embed test\.prod\.wasm
+var testWasmProd []byte
+
+//go:embed test-easy\.prod\.wasm
+var testWasmProdEasy []byte
+
+//go:embed test-lite\.prod\.wasm
+var testWasmProdLite []byte
+
+func BenchmarkHostModule(b *testing.B) {
+	var ctx = context.Background()
+	var out = &bytes.Buffer{}
+	r := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
+		WithMemoryLimitPages(256).
+		WithMemoryCapacityFromMax(true))
+	wasi_snapshot_preview1.MustInstantiate(ctx, r)
+	hostModule := New()
+	hostModule.Register(ctx, r)
+	for _, tc := range []struct {
+		name string
+		wasm []byte
+	}{
+		{`testWasm`, testWasm},
+		{`testWasmEasy`, testWasmEasy},
+		{`testWasmLite`, testWasmLite},
+		{`testWasmProd`, testWasmProd},
+		{`testWasmProdEasy`, testWasmProdEasy},
+		{`testWasmProdLite`, testWasmProdLite},
+	} {
+		compiled, err := r.CompileModule(ctx, tc.wasm)
+		if err != nil {
+			panic(err)
+		}
+		cfg := wazero.NewModuleConfig().WithStdout(out)
+		mod, _ := r.InstantiateModule(ctx, compiled, cfg.WithName(tc.name))
+		ctx, _ = hostModule.InitContext(ctx, mod)
+		s := grpc.NewServer()
+		addr := `:9001`
+		ctx = hostModule.RegisterService(ctx, s, mod)
+		lis, _ := net.Listen(`tcp`, addr)
+		go func() {
+			if err := s.Serve(lis); err != nil {
+				panic(err)
+			}
+		}()
+		conn, _ := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		client := pb.NewTestServiceClient(conn)
+		req := &pb.TestRequest{Foo: 20}
+		var res *pb.TestResponse
+		b.Run(tc.name, func(b *testing.B) {
+			for b.Loop() {
+				res, _ = client.Test(ctx, req)
+			}
+		})
+		if res.Bar != 20 {
+			b.Fatalf(`Nope`)
+		}
+		s.Stop()
+	}
+}
