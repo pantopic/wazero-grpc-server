@@ -50,7 +50,7 @@ func main() {
 [![Go Reference](https://godoc.org/github.com/pantopic/wazero-grpc-server/grpc-server-go?status.svg)](https://godoc.org/github.com/pantopic/wazero-grpc-server/grpc-server-go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pantopic/wazero-grpc-server/grpc-server-go)](https://goreportcard.com/report/github.com/pantopic/wazero-grpc-server/grpc-server-go)
 
-Then you can import the guest SDK into your WASI module to receive gRPC requests from WASM.
+Then you can import the guest SDK into your WASI module to export your gRPC service description at runtime and receive gRPC requests in WASM.
 
 ```go
 package main
