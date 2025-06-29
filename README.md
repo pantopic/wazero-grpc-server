@@ -50,15 +50,15 @@ func main() {}
 ```
 
 The [guest SDK](https://pkg.go.dev/github.com/pantopic/wazero-grpc/grpc-server-go) has no dependencies outside the Go std lib.
-The guest SDK is serialization format agnostic in order to provide users with more control over performance and binary size.
+The guest SDK is serialization agnostic in order to provide users with more control over performance and binary size.
 
-See examples for serialization techniques:
+See examples for protobuf message serialization options:
 
 - [test](/test) - `protoc-go-gen` auto-generated serialization (`790kb` binary)
 - [test-easy](/test-easy) - `easyproto` manually-generated serialization (`146kb` binary)
 - [test-lite](/test-lite) - `protobuf-go-lite` auto-generated serialization (`142kb` binary)
 
-Any of these approaches and others will work for protobuf serialization.
+Any of these options and others will work for protobuf serialization.
 
 ## Roadmap
 
