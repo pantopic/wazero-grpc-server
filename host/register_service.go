@@ -7,12 +7,13 @@ import (
 	"log"
 	"strings"
 
-	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
+
+	"github.com/pantopic/wazero-pool"
 )
 
-func registerService(s *grpc.Server, m api.Module, meta *meta, serviceName string, methods []string) {
-	h := &grpcHandler{m, meta}
+func registerService(s *grpc.Server, pool wazeropool.Module, meta *meta, serviceName string, methods []string) {
+	h := &grpcHandler{pool, meta}
 	fakeDesc := &grpc.ServiceDesc{
 		ServiceName: serviceName,
 		HandlerType: (*any)(nil),

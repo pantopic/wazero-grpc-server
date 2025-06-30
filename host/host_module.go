@@ -9,12 +9,13 @@ import (
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
+
+	"github.com/pantopic/wazero-pool"
 )
 
 var (
-	DefaultCtxKeyMeta   = `wazero_grpc_server_meta_key`
-	DefaultCtxKeyServer = `wazero_grpc_server`
-	DefaultCtxKeyNext   = `wazero_grpc_next`
+	DefaultCtxKeyMeta = `wazero_grpc_server_meta_key`
+	DefaultCtxKeyNext = `wazero_grpc_next`
 )
 
 type meta struct {
@@ -37,8 +38,7 @@ type hostModule struct {
 
 func New(opts ...Option) *hostModule {
 	p := &hostModule{
-		ctxKeyMeta:   DefaultCtxKeyMeta,
-		ctxKeyServer: DefaultCtxKeyServer,
+		ctxKeyMeta: DefaultCtxKeyMeta,
 	}
 	for _, opt := range opts {
 		opt(p)
@@ -88,12 +88,12 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 	return
 }
 
-// InitContext populates the meta page in context for a given module instance
+// initContext populates the meta page in context for a given module instance
 // Called per module instance immediately after module instantiation
-func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Context, error) {
+func (p *hostModule) initContext(ctx context.Context, m api.Module) (context.Context, *meta, error) {
 	stack, err := m.ExportedFunction(`grpc`).Call(ctx)
 	if err != nil {
-		return ctx, err
+		return ctx, nil, err
 	}
 	meta := &meta{}
 	ptr := uint32(stack[0])
@@ -104,27 +104,28 @@ func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Con
 	meta.ptrMsgLen, _ = m.Memory().ReadUint32Le(ptr + 16)
 	meta.ptrMsg, _ = m.Memory().ReadUint32Le(ptr + 20)
 	meta.ptrErrCode, _ = m.Memory().ReadUint32Le(ptr + 24)
-	return context.WithValue(ctx, p.ctxKeyMeta, meta), nil
+	return context.WithValue(ctx, p.ctxKeyMeta, meta), meta, nil
 }
 
 // RegisterService attaches the grpc service(s) to the grpc server
 // Called once before server open, usually given a module instance pool
-func (p *hostModule) RegisterService(ctx context.Context, s *grpc.Server, m api.Module) context.Context {
-	meta := get[*meta](ctx, p.ctxKeyMeta)
-	// msg = "/service.1.name/method1,method2,method3/service.2.name/method1,method2"
-	parts := strings.Split(string(msg(m, meta)), "/")
-	for i := 1; i+2 <= len(parts); i += 2 {
-		registerService(s, m, meta, parts[i], strings.Split(parts[i+1], ","))
+func (p *hostModule) RegisterService(ctx context.Context, s *grpc.Server, pool wazeropool.Module) (context.Context, error) {
+	mod := pool.Get()
+	defer pool.Put(mod)
+	ctx, meta, err := p.initContext(ctx, mod)
+	if err != nil {
+		return ctx, err
 	}
-	return context.WithValue(ctx, p.ctxKeyServer, s)
+	// msg = "/package1.ServiceName/u.method1,u.method2,c.method3/service2.ServiceName/u.method1,s.method2"
+	parts := strings.Split(string(msg(mod, meta)), "/")
+	for i := 1; i+2 <= len(parts); i += 2 {
+		registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","))
+	}
+	return ctx, nil
 }
 
 func (p *hostModule) Stop() (err error) {
 	return
-}
-
-func (p *hostModule) server(ctx context.Context) *grpc.Server {
-	return get[*grpc.Server](ctx, p.ctxKeyServer)
 }
 
 func get[T any](ctx context.Context, key string) T {

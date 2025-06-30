@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/pantopic/wazero-grpc-server/host/pb"
+	"github.com/pantopic/wazero-pool"
 )
 
 //go:embed test-easy\.wasm
@@ -55,27 +56,22 @@ func TestHostModule(t *testing.T) {
 		{`testWasmLiteProd`, testWasmLiteProd},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			compiled, err := r.CompileModule(ctx, tc.wasm)
-			if err != nil {
-				panic(err)
-			}
+			s := grpc.NewServer()
 			cfg := wazero.NewModuleConfig().WithStdout(out)
-			mod, err := r.InstantiateModule(ctx, compiled, cfg.WithName(tc.name))
+			pool, err := wazeropool.New(ctx, r, tc.wasm, cfg)
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
-
-			ctx, err = hostModule.InitContext(ctx, mod)
+			ctx, err = hostModule.RegisterService(ctx, s, pool)
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
 			meta := get[*meta](ctx, hostModule.ctxKeyMeta)
+			mod := pool.Get()
 			if readUint32(mod, meta.ptrMethodMax) != 256 {
 				t.Errorf("incorrect maximum method length: %#v", meta)
 			}
-
-			s := grpc.NewServer()
-			ctx = hostModule.RegisterService(ctx, s, mod)
+			pool.Put(mod)
 			port++
 			addr := fmt.Sprintf(`:%d`, port)
 			lis, err := net.Listen(`tcp`, addr)
@@ -143,43 +139,91 @@ func BenchmarkHostModule(b *testing.B) {
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 	hostModule := New()
 	hostModule.Register(ctx, r)
-	for _, tc := range []struct {
-		name string
-		wasm []byte
-	}{
-		{`testWasmEasy`, testWasmEasy},
-		{`testWasmLite`, testWasmLite},
-		{`testWasmEasyProd`, testWasmEasyProd},
-		{`testWasmLiteProd`, testWasmLiteProd},
-	} {
-		compiled, err := r.CompileModule(ctx, tc.wasm)
-		if err != nil {
-			panic(err)
-		}
-		cfg := wazero.NewModuleConfig().WithStdout(out)
-		mod, _ := r.InstantiateModule(ctx, compiled, cfg.WithName(tc.name))
-		ctx, _ = hostModule.InitContext(ctx, mod)
-		s := grpc.NewServer()
-		addr := `:9001`
-		ctx = hostModule.RegisterService(ctx, s, mod)
-		lis, _ := net.Listen(`tcp`, addr)
-		go func() {
-			if err := s.Serve(lis); err != nil {
-				panic(err)
+	b.Run(`linear`, func(b *testing.B) {
+		for _, tc := range []struct {
+			name string
+			wasm []byte
+		}{
+			{`testWasmEasy`, testWasmEasy},
+			{`testWasmLite`, testWasmLite},
+			{`testWasmEasyProd`, testWasmEasyProd},
+			{`testWasmLiteProd`, testWasmLiteProd},
+		} {
+			s := grpc.NewServer()
+			cfg := wazero.NewModuleConfig().WithStdout(out)
+			pool, err := wazeropool.New(ctx, r, tc.wasm, cfg)
+			if err != nil {
+				b.Fatalf(`%v`, err)
 			}
-		}()
-		conn, _ := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		client := pb.NewTestServiceClient(conn)
-		req := &pb.TestRequest{Foo: 20}
-		var res *pb.TestResponse
-		b.Run(tc.name, func(b *testing.B) {
-			for b.Loop() {
-				res, _ = client.Test(ctx, req)
+			addr := `:9001`
+			ctx, err = hostModule.RegisterService(ctx, s, pool)
+			if err != nil {
+				b.Fatalf(`%v`, err)
+			}
+			lis, _ := net.Listen(`tcp`, addr)
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					panic(err)
+				}
+			}()
+			conn, _ := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			client := pb.NewTestServiceClient(conn)
+			req := &pb.TestRequest{Foo: 20}
+			var res *pb.TestResponse
+			b.Run(tc.name, func(b *testing.B) {
+				for b.Loop() {
+					res, _ = client.Test(ctx, req)
+				}
+			})
+			if res.Bar != 20 {
+				b.Fatalf(`Nope`)
+			}
+			s.Stop()
+		}
+	})
+	for _, n := range []int{0, 2, 4, 8, 16} {
+		b.Run(fmt.Sprintf(`parallel-%d`, n), func(b *testing.B) {
+			for _, tc := range []struct {
+				name string
+				wasm []byte
+			}{
+				{`testWasmEasyProd`, testWasmEasyProd},
+				{`testWasmLiteProd`, testWasmLiteProd},
+			} {
+				s := grpc.NewServer()
+				cfg := wazero.NewModuleConfig().WithStdout(out)
+				pool, err := wazeropool.New(ctx, r, tc.wasm, cfg, wazeropool.WithLimit(n))
+				if err != nil {
+					b.Fatalf(`%v`, err)
+				}
+				addr := `:9001`
+				ctx, err = hostModule.RegisterService(ctx, s, pool)
+				if err != nil {
+					b.Fatalf(`%v`, err)
+				}
+				lis, _ := net.Listen(`tcp`, addr)
+				go func() {
+					if err := s.Serve(lis); err != nil {
+						panic(err)
+					}
+				}()
+				conn, _ := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+				client := pb.NewTestServiceClient(conn)
+				req := &pb.TestRequest{Foo: 20}
+				var res *pb.TestResponse
+				b.Run(tc.name, func(b *testing.B) {
+					b.SetParallelism(n)
+					b.RunParallel(func(pb *testing.PB) {
+						for pb.Next() {
+							res, _ = client.Test(ctx, req)
+						}
+					})
+				})
+				if res.Bar != 20 {
+					b.Fatalf(`Nope`)
+				}
+				s.Stop()
 			}
 		})
-		if res.Bar != 20 {
-			b.Fatalf(`Nope`)
-		}
-		s.Stop()
 	}
 }

@@ -1,4 +1,4 @@
-// Borrowed heavily from mwitkow/grpc-proxy
+// Borrowed heavily from mwitkow/grpc-proxy (Apache 2.0)
 // See https://github.com/mwitkow/grpc-proxy/blob/master/proxy/handler.go
 
 package wazero_grpc_server
@@ -7,15 +7,16 @@ import (
 	"context"
 	"io"
 
-	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+
+	"github.com/pantopic/wazero-pool"
 )
 
 type grpcHandler struct {
-	mod  api.Module
+	pool wazeropool.Module
 	meta *meta
 }
 
@@ -25,9 +26,11 @@ func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.
 		if !ok {
 			return status.Errorf(codes.Internal, "lowLevelServerStream not exists in context")
 		}
-		clientCtx, clientCancel := context.WithCancel(serverStream.Context())
-		defer clientCancel()
-		clientStream := f(clientCtx, h.mod, h.meta, fullMethodName)
+		ctx, cancel := context.WithCancel(serverStream.Context())
+		defer cancel()
+		mod := h.pool.Get()
+		defer h.pool.Put(mod)
+		clientStream := f(ctx, mod, h.meta, fullMethodName)
 		s2cErrChan := h.forwardServerToClient(serverStream, clientStream)
 		c2sErrChan := h.forwardClientToServer(clientStream, serverStream)
 		for range 2 {
@@ -36,7 +39,7 @@ func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.
 				if s2cErr == io.EOF {
 					clientStream.CloseSend()
 				} else {
-					clientCancel()
+					cancel()
 					return status.Errorf(codes.Internal, "failed proxying s2c: %v", s2cErr)
 				}
 			case c2sErr := <-c2sErrChan:

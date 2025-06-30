@@ -99,6 +99,31 @@ See examples for protobuf message serialization options:
 These options and others can be used for protobuf serialization in WASM but some standard approaches to protobuf
 serialization like `protoc-gen-go` require reflection which tinygo does not support.
 
+## Performance
+
+Setting `limit` explicitly is recommended unless you are already strictly limiting the concurrency of the calling code
+in other ways.
+
+```go
+> make bench
+BenchmarkHostModule/linear/testWasmEasy-16                 11444             91122 ns/op
+BenchmarkHostModule/linear/testWasmLite-16                 13618             83596 ns/op
+BenchmarkHostModule/linear/testWasmEasyProd-16             12727             89709 ns/op
+BenchmarkHostModule/linear/testWasmLiteProd-16             12976             91205 ns/op
+BenchmarkHostModule/parallel-0/testWasmEasyProd-16         66570             15778 ns/op
+BenchmarkHostModule/parallel-0/testWasmLiteProd-16         88696             15303 ns/op
+BenchmarkHostModule/parallel-2/testWasmEasyProd-16        101528             11630 ns/op
+BenchmarkHostModule/parallel-2/testWasmLiteProd-16         98217             11166 ns/op
+BenchmarkHostModule/parallel-4/testWasmEasyProd-16        144388              9448 ns/op
+BenchmarkHostModule/parallel-4/testWasmLiteProd-16        128978              8996 ns/op
+BenchmarkHostModule/parallel-8/testWasmEasyProd-16        132819              8623 ns/op
+BenchmarkHostModule/parallel-8/testWasmLiteProd-16        144176              7314 ns/op
+BenchmarkHostModule/parallel-16/testWasmEasyProd-16       187375              8170 ns/op
+BenchmarkHostModule/parallel-16/testWasmLiteProd-16       185180              7023 ns/op
+PASS
+ok      github.com/pantopic/wazero-grpc-server/host     19.806s
+```
+
 ## Roadmap
 
 This project is in alpha. Breaking API changes should be expected until Beta.

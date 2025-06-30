@@ -24,7 +24,7 @@ test:
 	@cd host && go test .
 
 bench:
-	cd host && go test -bench=. -v -run=Benchmark.*
+	@cd host && go test -bench=. -v -run=Benchmark.*
 
 cover:
 	@mkdir -p _dist
