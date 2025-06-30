@@ -76,23 +76,7 @@ func retest(req *pb.RetestRequest) (res *pb.RetestResponse, err error) {
 	return &pb.RetestResponse{Foo: req.Bar}, nil
 }
 
-func protoWrap[ReqType proto.Message, ResType proto.Message](fn func(ReqType) (ResType, error), req ReqType) func([]byte) ([]byte, error) {
-	return func(in []byte) (out []byte, err error) {
-		err = req.UnmarshalVT(in)
-		if err != nil {
-			return []byte(err.Error()), grpc_server.ErrMalformed
-		}
-		res, err := fn(req)
-		if err != nil {
-			return []byte(err.Error()), grpc_server.ErrUnexpected
-		}
-		out, err = res.MarshalVT()
-		if err != nil {
-			return []byte(err.Error()), grpc_server.ErrMarshal
-		}
-		return
-	}
-}
+// ...
 ```
 
 The [guest SDK](https://pkg.go.dev/github.com/pantopic/wazero-grpc-server/grpc-server-go) has no dependencies outside the Go std lib.
