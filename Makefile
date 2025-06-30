@@ -21,7 +21,7 @@ wasm-all: wasm-easy wasm-lite wasm-easy-prod wasm-lite-prod
 wasm-all-prod: wasm-easy-prod wasm-lite-prod
 
 test:
-	@cd host && go test .
+	@cd host && go test . -v -cover
 
 bench:
 	@cd host && go test -bench=. -v -run=Benchmark.*
