@@ -19,12 +19,6 @@ var (
 	services = map[string]*Service{}
 )
 
-type Service struct {
-	handlers map[string]handler
-}
-
-type handler func([]byte) ([]byte, error)
-
 //export grpc
 func grpc() (res uint32) {
 	meta[0] = uint32(uintptr(unsafe.Pointer(&methodMax)))
@@ -43,8 +37,15 @@ func grpc() (res uint32) {
 	for _, name := range serviceNames {
 		msg = append(msg, []byte("/"+name+"/")...)
 		var methods []string
-		for k := range services[name].handlers {
-			methods = append(methods, k)
+		for k, h := range services[name].handlers {
+			switch h.(type) {
+			case handler:
+				methods = append(methods, `u.`+k)
+			case clientStream:
+				methods = append(methods, `c.`+k)
+			case serverStream:
+				methods = append(methods, `s.`+k)
+			}
 		}
 		sort.Strings(methods)
 		msg = append(msg, []byte(strings.Join(methods, ","))...)
@@ -80,24 +81,78 @@ func grpcCall() {
 		errCode = errCodeNotImplemented
 		return
 	}
-	handler, ok := service.handlers[parts[2]]
+	h, ok := service.handlers[parts[2]]
 	if !ok {
 		errCode = errCodeNotImplemented
 		return
 	}
-	b, err := handler(getMsg())
-	if err != nil {
-		if err, ok := err.(Error); ok {
-			errCode = err.code
-		} else {
-			errCode = errCodeUnknown
+	switch h := h.(type) {
+	case handler:
+		b, err := h(getMsg())
+		if err != nil {
+			if err, ok := err.(Error); ok {
+				errCode = err.code
+			} else {
+				errCode = errCodeUnknown
+			}
+			setMsg([]byte(err.Error()))
+			return
 		}
-		setMsg([]byte(err.Error()))
+		errCode = errCodeEmpty
+		setMsg(b)
+	case clientStream:
+		b, err := h(func(yield func([]byte) bool) {
+			for {
+				if errCode != errCodeEmpty {
+					return
+				}
+				m := getMsg()
+				if !yield(m) {
+					return
+				}
+				grpcRecv()
+			}
+		})
+		if err != nil {
+			if err, ok := err.(Error); ok {
+				errCode = err.code
+			} else {
+				errCode = errCodeUnknown
+			}
+			setMsg([]byte(err.Error()))
+			return
+		}
+		errCode = errCodeEmpty
+		setMsg(b)
+	case serverStream:
+		all, err := h(getMsg())
+		if err != nil {
+			if err, ok := err.(Error); ok {
+				errCode = err.code
+			} else {
+				errCode = errCodeUnknown
+			}
+			setMsg([]byte(err.Error()))
+			return
+		}
+		errCode = errCodeEmpty
+		for m := range all {
+			setMsg(m)
+			grpcSend()
+		}
+	case bidirectionalStream:
+		errCode = errCodeNotImplemented
 		return
 	}
-	errCode = errCodeEmpty
-	setMsg(b)
 }
+
+//go:wasm-module grpc
+//export Recv
+func grpcRecv()
+
+//go:wasm-module grpc
+//export Send
+func grpcSend()
 
 // Fix for lint rule `unusedfunc`
 var _ = grpc

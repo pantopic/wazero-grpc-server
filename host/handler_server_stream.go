@@ -10,11 +10,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func newClientStream(ctx context.Context, mod api.Module, meta *meta, method string) grpc.ClientStream {
-	return &clientStream{ctx, mod, meta, method, make(chan bool)}
+func newHandlerServerStream(ctx context.Context, mod api.Module, meta *meta, method string) grpc.ClientStream {
+	return &handlerServerStream{ctx, mod, meta, method, make(chan bool)}
 }
 
-type clientStream struct {
+type handlerServerStream struct {
 	ctx    context.Context
 	mod    api.Module
 	meta   *meta
@@ -22,23 +22,23 @@ type clientStream struct {
 	ready  chan bool
 }
 
-func (cs *clientStream) Header() (md metadata.MD, err error) {
+func (cs *handlerServerStream) Header() (md metadata.MD, err error) {
 	return
 }
 
-func (cs *clientStream) Trailer() (md metadata.MD) {
+func (cs *handlerServerStream) Trailer() (md metadata.MD) {
 	return
 }
 
-func (cs *clientStream) CloseSend() (err error) {
+func (cs *handlerServerStream) CloseSend() (err error) {
 	return
 }
 
-func (cs *clientStream) Context() context.Context {
+func (cs *handlerServerStream) Context() context.Context {
 	return cs.ctx
 }
 
-func (cs *clientStream) SendMsg(m any) (err error) {
+func (cs *handlerServerStream) SendMsg(m any) (err error) {
 	msg, err := proto.Marshal(m.(proto.Message))
 	if err != nil {
 		panic(err)
@@ -50,14 +50,14 @@ func (cs *clientStream) SendMsg(m any) (err error) {
 	return
 }
 
-func (cs *clientStream) RecvMsg(m any) (err error) {
+func (cs *handlerServerStream) RecvMsg(m any) (err error) {
 	select {
 	case _, ok := <-cs.ready:
 		if !ok {
 			return io.EOF
 		}
 		if ferr := getError(cs.mod, cs.meta); ferr != nil {
-			ferr.msg += `: ` + string(msg(cs.mod, cs.meta))
+			ferr.(*Error).msg += `: ` + string(msg(cs.mod, cs.meta))
 			return ferr
 		}
 		b := msg(cs.mod, cs.meta)

@@ -4,12 +4,6 @@ dev:
 build:
 	@go build -ldflags="-s -w" -o _dist/pantopic
 
-wasm:
-	@cd test && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test.wasm
-
-wasm-prod:
-	@cd test && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=conservative -scheduler=none -o ../host/test.prod.wasm -no-debug
-
 wasm-easy:
 	@cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-easy.wasm
 
@@ -22,9 +16,9 @@ wasm-lite:
 wasm-lite-prod:
 	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=conservative -scheduler=none -o ../host/test-lite.prod.wasm -no-debug
 
-wasm-all: wasm wasm-easy wasm-lite wasm-prod wasm-easy-prod wasm-lite-prod
+wasm-all: wasm-easy wasm-lite wasm-easy-prod wasm-lite-prod
 
-wasm-all-prod: wasm-prod wasm-easy-prod wasm-lite-prod
+wasm-all-prod: wasm-easy-prod wasm-lite-prod
 
 test:
 	@cd host && go test .
@@ -47,14 +41,6 @@ gen-install:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
-gen-test:
-	@protoc test.proto \
-		--go_out=test/pb \
-		--go_opt=paths=source_relative
-
-gen-test-install:
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-
 gen-test-lite:
 	@ protoc test.proto \
 		--plugin protoc-gen-go-lite="${GOBIN}/protoc-gen-go-lite" \
@@ -65,7 +51,7 @@ gen-test-lite:
 gen-test-lite-install:
 	go install github.com/aperturerobotics/protobuf-go-lite/cmd/protoc-gen-go-lite@latest
 
-gen-all: gen gen-test gen-test-lite
+gen-all: gen gen-test-lite
 
 cloc:
 	@cloc . --exclude-dir=_example,_dist,internal,cmd --exclude-ext=pb.go

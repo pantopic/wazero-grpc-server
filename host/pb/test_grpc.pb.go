@@ -19,8 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TestService_Test_FullMethodName   = "/test.TestService/Test"
-	TestService_Retest_FullMethodName = "/test.TestService/Retest"
+	TestService_Test_FullMethodName                = "/test.TestService/Test"
+	TestService_Retest_FullMethodName              = "/test.TestService/Retest"
+	TestService_ClientStream_FullMethodName        = "/test.TestService/ClientStream"
+	TestService_ServerStream_FullMethodName        = "/test.TestService/ServerStream"
+	TestService_BidirectionalStream_FullMethodName = "/test.TestService/BidirectionalStream"
 )
 
 // TestServiceClient is the client API for TestService service.
@@ -29,6 +32,9 @@ const (
 type TestServiceClient interface {
 	Test(ctx context.Context, in *TestRequest, opts ...grpc.CallOption) (*TestResponse, error)
 	Retest(ctx context.Context, in *RetestRequest, opts ...grpc.CallOption) (*RetestResponse, error)
+	ClientStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ClientStreamRequest, ClientStreamResponse], error)
+	ServerStream(ctx context.Context, in *ServerStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ServerStreamResponse], error)
+	BidirectionalStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[BidirectionalStreamRequest, BidirectionalStreamResponse], error)
 }
 
 type testServiceClient struct {
@@ -59,12 +65,60 @@ func (c *testServiceClient) Retest(ctx context.Context, in *RetestRequest, opts 
 	return out, nil
 }
 
+func (c *testServiceClient) ClientStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ClientStreamRequest, ClientStreamResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[0], TestService_ClientStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ClientStreamRequest, ClientStreamResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TestService_ClientStreamClient = grpc.ClientStreamingClient[ClientStreamRequest, ClientStreamResponse]
+
+func (c *testServiceClient) ServerStream(ctx context.Context, in *ServerStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ServerStreamResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[1], TestService_ServerStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ServerStreamRequest, ServerStreamResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TestService_ServerStreamClient = grpc.ServerStreamingClient[ServerStreamResponse]
+
+func (c *testServiceClient) BidirectionalStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[BidirectionalStreamRequest, BidirectionalStreamResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &TestService_ServiceDesc.Streams[2], TestService_BidirectionalStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[BidirectionalStreamRequest, BidirectionalStreamResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TestService_BidirectionalStreamClient = grpc.BidiStreamingClient[BidirectionalStreamRequest, BidirectionalStreamResponse]
+
 // TestServiceServer is the server API for TestService service.
 // All implementations must embed UnimplementedTestServiceServer
 // for forward compatibility.
 type TestServiceServer interface {
 	Test(context.Context, *TestRequest) (*TestResponse, error)
 	Retest(context.Context, *RetestRequest) (*RetestResponse, error)
+	ClientStream(grpc.ClientStreamingServer[ClientStreamRequest, ClientStreamResponse]) error
+	ServerStream(*ServerStreamRequest, grpc.ServerStreamingServer[ServerStreamResponse]) error
+	BidirectionalStream(grpc.BidiStreamingServer[BidirectionalStreamRequest, BidirectionalStreamResponse]) error
 	mustEmbedUnimplementedTestServiceServer()
 }
 
@@ -80,6 +134,15 @@ func (UnimplementedTestServiceServer) Test(context.Context, *TestRequest) (*Test
 }
 func (UnimplementedTestServiceServer) Retest(context.Context, *RetestRequest) (*RetestResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Retest not implemented")
+}
+func (UnimplementedTestServiceServer) ClientStream(grpc.ClientStreamingServer[ClientStreamRequest, ClientStreamResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method ClientStream not implemented")
+}
+func (UnimplementedTestServiceServer) ServerStream(*ServerStreamRequest, grpc.ServerStreamingServer[ServerStreamResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method ServerStream not implemented")
+}
+func (UnimplementedTestServiceServer) BidirectionalStream(grpc.BidiStreamingServer[BidirectionalStreamRequest, BidirectionalStreamResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method BidirectionalStream not implemented")
 }
 func (UnimplementedTestServiceServer) mustEmbedUnimplementedTestServiceServer() {}
 func (UnimplementedTestServiceServer) testEmbeddedByValue()                     {}
@@ -138,6 +201,31 @@ func _TestService_Retest_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TestService_ClientStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(TestServiceServer).ClientStream(&grpc.GenericServerStream[ClientStreamRequest, ClientStreamResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TestService_ClientStreamServer = grpc.ClientStreamingServer[ClientStreamRequest, ClientStreamResponse]
+
+func _TestService_ServerStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ServerStreamRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(TestServiceServer).ServerStream(m, &grpc.GenericServerStream[ServerStreamRequest, ServerStreamResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TestService_ServerStreamServer = grpc.ServerStreamingServer[ServerStreamResponse]
+
+func _TestService_BidirectionalStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(TestServiceServer).BidirectionalStream(&grpc.GenericServerStream[BidirectionalStreamRequest, BidirectionalStreamResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TestService_BidirectionalStreamServer = grpc.BidiStreamingServer[BidirectionalStreamRequest, BidirectionalStreamResponse]
+
 // TestService_ServiceDesc is the grpc.ServiceDesc for TestService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -154,6 +242,23 @@ var TestService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _TestService_Retest_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ClientStream",
+			Handler:       _TestService_ClientStream_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "ServerStream",
+			Handler:       _TestService_ServerStream_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "BidirectionalStream",
+			Handler:       _TestService_BidirectionalStream_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "test.proto",
 }

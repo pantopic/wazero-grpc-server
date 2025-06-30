@@ -197,6 +197,270 @@ func (x *RetestResponse) GetFoo() uint64 {
 	return 0
 }
 
+type ClientStreamRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Foo2          uint64                 `protobuf:"varint,2,opt,name=foo2,proto3" json:"foo2,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClientStreamRequest) Reset() {
+	*x = ClientStreamRequest{}
+	mi := &file_test_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClientStreamRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClientStreamRequest) ProtoMessage() {}
+
+func (x *ClientStreamRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_test_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClientStreamRequest.ProtoReflect.Descriptor instead.
+func (*ClientStreamRequest) Descriptor() ([]byte, []int) {
+	return file_test_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ClientStreamRequest) GetFoo2() uint64 {
+	if x != nil {
+		return x.Foo2
+	}
+	return 0
+}
+
+type ClientStreamResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Bar2          uint64                 `protobuf:"varint,3,opt,name=bar2,proto3" json:"bar2,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClientStreamResponse) Reset() {
+	*x = ClientStreamResponse{}
+	mi := &file_test_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClientStreamResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClientStreamResponse) ProtoMessage() {}
+
+func (x *ClientStreamResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_test_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClientStreamResponse.ProtoReflect.Descriptor instead.
+func (*ClientStreamResponse) Descriptor() ([]byte, []int) {
+	return file_test_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ClientStreamResponse) GetBar2() uint64 {
+	if x != nil {
+		return x.Bar2
+	}
+	return 0
+}
+
+type ServerStreamRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Foo3          uint64                 `protobuf:"varint,4,opt,name=foo3,proto3" json:"foo3,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServerStreamRequest) Reset() {
+	*x = ServerStreamRequest{}
+	mi := &file_test_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServerStreamRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServerStreamRequest) ProtoMessage() {}
+
+func (x *ServerStreamRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_test_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServerStreamRequest.ProtoReflect.Descriptor instead.
+func (*ServerStreamRequest) Descriptor() ([]byte, []int) {
+	return file_test_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ServerStreamRequest) GetFoo3() uint64 {
+	if x != nil {
+		return x.Foo3
+	}
+	return 0
+}
+
+type ServerStreamResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Bar3          uint64                 `protobuf:"varint,5,opt,name=bar3,proto3" json:"bar3,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServerStreamResponse) Reset() {
+	*x = ServerStreamResponse{}
+	mi := &file_test_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServerStreamResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServerStreamResponse) ProtoMessage() {}
+
+func (x *ServerStreamResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_test_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServerStreamResponse.ProtoReflect.Descriptor instead.
+func (*ServerStreamResponse) Descriptor() ([]byte, []int) {
+	return file_test_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ServerStreamResponse) GetBar3() uint64 {
+	if x != nil {
+		return x.Bar3
+	}
+	return 0
+}
+
+type BidirectionalStreamRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Foo4          uint64                 `protobuf:"varint,6,opt,name=foo4,proto3" json:"foo4,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BidirectionalStreamRequest) Reset() {
+	*x = BidirectionalStreamRequest{}
+	mi := &file_test_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BidirectionalStreamRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BidirectionalStreamRequest) ProtoMessage() {}
+
+func (x *BidirectionalStreamRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_test_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BidirectionalStreamRequest.ProtoReflect.Descriptor instead.
+func (*BidirectionalStreamRequest) Descriptor() ([]byte, []int) {
+	return file_test_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *BidirectionalStreamRequest) GetFoo4() uint64 {
+	if x != nil {
+		return x.Foo4
+	}
+	return 0
+}
+
+type BidirectionalStreamResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Bar4          uint64                 `protobuf:"varint,7,opt,name=bar4,proto3" json:"bar4,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BidirectionalStreamResponse) Reset() {
+	*x = BidirectionalStreamResponse{}
+	mi := &file_test_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BidirectionalStreamResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BidirectionalStreamResponse) ProtoMessage() {}
+
+func (x *BidirectionalStreamResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_test_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BidirectionalStreamResponse.ProtoReflect.Descriptor instead.
+func (*BidirectionalStreamResponse) Descriptor() ([]byte, []int) {
+	return file_test_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *BidirectionalStreamResponse) GetBar4() uint64 {
+	if x != nil {
+		return x.Bar4
+	}
+	return 0
+}
+
 var File_test_proto protoreflect.FileDescriptor
 
 const file_test_proto_rawDesc = "" +
@@ -210,10 +474,25 @@ const file_test_proto_rawDesc = "" +
 	"\rRetestRequest\x12\x10\n" +
 	"\x03bar\x18\x01 \x01(\x04R\x03bar\"\"\n" +
 	"\x0eRetestResponse\x12\x10\n" +
-	"\x03foo\x18\x01 \x01(\x04R\x03foo2u\n" +
+	"\x03foo\x18\x01 \x01(\x04R\x03foo\")\n" +
+	"\x13ClientStreamRequest\x12\x12\n" +
+	"\x04foo2\x18\x02 \x01(\x04R\x04foo2\"*\n" +
+	"\x14ClientStreamResponse\x12\x12\n" +
+	"\x04bar2\x18\x03 \x01(\x04R\x04bar2\")\n" +
+	"\x13ServerStreamRequest\x12\x12\n" +
+	"\x04foo3\x18\x04 \x01(\x04R\x04foo3\"*\n" +
+	"\x14ServerStreamResponse\x12\x12\n" +
+	"\x04bar3\x18\x05 \x01(\x04R\x04bar3\"0\n" +
+	"\x1aBidirectionalStreamRequest\x12\x12\n" +
+	"\x04foo4\x18\x06 \x01(\x04R\x04foo4\"1\n" +
+	"\x1bBidirectionalStreamResponse\x12\x12\n" +
+	"\x04bar4\x18\a \x01(\x04R\x04bar42\xed\x02\n" +
 	"\vTestService\x12/\n" +
 	"\x04Test\x12\x11.test.TestRequest\x1a\x12.test.TestResponse\"\x00\x125\n" +
-	"\x06Retest\x12\x13.test.RetestRequest\x1a\x14.test.RetestResponse\"\x00B0Z.github.com/pantopic/wazero-grpc-server/test;pbb\x06proto3"
+	"\x06Retest\x12\x13.test.RetestRequest\x1a\x14.test.RetestResponse\"\x00\x12I\n" +
+	"\fClientStream\x12\x19.test.ClientStreamRequest\x1a\x1a.test.ClientStreamResponse\"\x00(\x01\x12I\n" +
+	"\fServerStream\x12\x19.test.ServerStreamRequest\x1a\x1a.test.ServerStreamResponse\"\x000\x01\x12`\n" +
+	"\x13BidirectionalStream\x12 .test.BidirectionalStreamRequest\x1a!.test.BidirectionalStreamResponse\"\x00(\x010\x01B0Z.github.com/pantopic/wazero-grpc-server/test;pbb\x06proto3"
 
 var (
 	file_test_proto_rawDescOnce sync.Once
@@ -227,20 +506,32 @@ func file_test_proto_rawDescGZIP() []byte {
 	return file_test_proto_rawDescData
 }
 
-var file_test_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_test_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_test_proto_goTypes = []any{
-	(*TestRequest)(nil),    // 0: test.TestRequest
-	(*TestResponse)(nil),   // 1: test.TestResponse
-	(*RetestRequest)(nil),  // 2: test.RetestRequest
-	(*RetestResponse)(nil), // 3: test.RetestResponse
+	(*TestRequest)(nil),                 // 0: test.TestRequest
+	(*TestResponse)(nil),                // 1: test.TestResponse
+	(*RetestRequest)(nil),               // 2: test.RetestRequest
+	(*RetestResponse)(nil),              // 3: test.RetestResponse
+	(*ClientStreamRequest)(nil),         // 4: test.ClientStreamRequest
+	(*ClientStreamResponse)(nil),        // 5: test.ClientStreamResponse
+	(*ServerStreamRequest)(nil),         // 6: test.ServerStreamRequest
+	(*ServerStreamResponse)(nil),        // 7: test.ServerStreamResponse
+	(*BidirectionalStreamRequest)(nil),  // 8: test.BidirectionalStreamRequest
+	(*BidirectionalStreamResponse)(nil), // 9: test.BidirectionalStreamResponse
 }
 var file_test_proto_depIdxs = []int32{
 	0, // 0: test.TestService.Test:input_type -> test.TestRequest
 	2, // 1: test.TestService.Retest:input_type -> test.RetestRequest
-	1, // 2: test.TestService.Test:output_type -> test.TestResponse
-	3, // 3: test.TestService.Retest:output_type -> test.RetestResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	4, // 2: test.TestService.ClientStream:input_type -> test.ClientStreamRequest
+	6, // 3: test.TestService.ServerStream:input_type -> test.ServerStreamRequest
+	8, // 4: test.TestService.BidirectionalStream:input_type -> test.BidirectionalStreamRequest
+	1, // 5: test.TestService.Test:output_type -> test.TestResponse
+	3, // 6: test.TestService.Retest:output_type -> test.RetestResponse
+	5, // 7: test.TestService.ClientStream:output_type -> test.ClientStreamResponse
+	7, // 8: test.TestService.ServerStream:output_type -> test.ServerStreamResponse
+	9, // 9: test.TestService.BidirectionalStream:output_type -> test.BidirectionalStreamResponse
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -257,7 +548,7 @@ func file_test_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_test_proto_rawDesc), len(file_test_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

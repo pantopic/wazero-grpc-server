@@ -4,6 +4,9 @@
 package wazero_grpc_server
 
 import (
+	"log"
+	"strings"
+
 	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
 )
@@ -15,13 +18,24 @@ func registerService(s *grpc.Server, m api.Module, meta *meta, serviceName strin
 		HandlerType: (*any)(nil),
 	}
 	for _, m := range methods {
-		streamDesc := grpc.StreamDesc{
-			StreamName:    m,
-			Handler:       h.handler,
+		parts := strings.Split(m, ".")
+		if len(parts) < 2 {
+			log.Panicf(`%s %#v`, methods, parts)
+		}
+		var d = grpc.StreamDesc{
+			StreamName:    parts[1],
 			ServerStreams: true,
 			ClientStreams: true,
 		}
-		fakeDesc.Streams = append(fakeDesc.Streams, streamDesc)
+		switch parts[0] {
+		case "u":
+			d.Handler = h.handler(newHandlerUnary)
+		case "c":
+			d.Handler = h.handler(newHandlerClientStream)
+		case "s":
+			d.Handler = h.handler(newHandlerServerStream)
+		}
+		fakeDesc.Streams = append(fakeDesc.Streams, d)
 	}
 	s.RegisterService(fakeDesc, h)
 }

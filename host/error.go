@@ -2,6 +2,7 @@ package wazero_grpc_server
 
 const (
 	errCodeEmpty uint32 = iota
+	errCodeDone
 	errCodeUnknown
 	errCodeInvalid
 	errCodeUnrecognized
@@ -21,7 +22,7 @@ var (
 	ErrMarshal        = &Error{errCodeMarshal, "Marshal"}
 )
 
-var errorsByCode = map[uint32]*Error{
+var errorsByCode = map[uint32]error{
 	errCodeUnknown:        ErrUnknown,
 	errCodeInvalid:        ErrInvalid,
 	errCodeUnrecognized:   ErrUnrecognized,

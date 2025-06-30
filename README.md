@@ -104,9 +104,8 @@ The guest SDK is serialization agnostic in order to provide users with more cont
 
 See examples for protobuf message serialization options:
 
-- [test](/test) - `protoc-go-gen` auto-generated (`627kb` binary, `15s` build time)
-- [test-easy](/test-easy) - `easyproto` manually-generated (`107kb` binary, `3s` build time)
-- [test-lite](/test-lite) - `protobuf-go-lite` auto-generated (`105kb` binary, `3s` build time, recommended)
+- [test-easy](/test-easy) - `easyproto` manually-generated (`113kb` binary, `3s` build time)
+- [test-lite](/test-lite) - `protobuf-go-lite` auto-generated (`113kb` binary, `3s` build time, recommended)
 
 Any of these options and others can be used for protobuf serialization in WASM.
 

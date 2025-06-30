@@ -82,6 +82,114 @@ func (x *RetestResponse) GetFoo() uint64 {
 	return 0
 }
 
+type ClientStreamRequest struct {
+	unknownFields []byte
+	Foo2          uint64 `protobuf:"varint,2,opt,name=foo2,proto3" json:"foo2,omitempty"`
+}
+
+func (x *ClientStreamRequest) Reset() {
+	*x = ClientStreamRequest{}
+}
+
+func (*ClientStreamRequest) ProtoMessage() {}
+
+func (x *ClientStreamRequest) GetFoo2() uint64 {
+	if x != nil {
+		return x.Foo2
+	}
+	return 0
+}
+
+type ClientStreamResponse struct {
+	unknownFields []byte
+	Bar2          uint64 `protobuf:"varint,3,opt,name=bar2,proto3" json:"bar2,omitempty"`
+}
+
+func (x *ClientStreamResponse) Reset() {
+	*x = ClientStreamResponse{}
+}
+
+func (*ClientStreamResponse) ProtoMessage() {}
+
+func (x *ClientStreamResponse) GetBar2() uint64 {
+	if x != nil {
+		return x.Bar2
+	}
+	return 0
+}
+
+type ServerStreamRequest struct {
+	unknownFields []byte
+	Foo3          uint64 `protobuf:"varint,4,opt,name=foo3,proto3" json:"foo3,omitempty"`
+}
+
+func (x *ServerStreamRequest) Reset() {
+	*x = ServerStreamRequest{}
+}
+
+func (*ServerStreamRequest) ProtoMessage() {}
+
+func (x *ServerStreamRequest) GetFoo3() uint64 {
+	if x != nil {
+		return x.Foo3
+	}
+	return 0
+}
+
+type ServerStreamResponse struct {
+	unknownFields []byte
+	Bar3          uint64 `protobuf:"varint,5,opt,name=bar3,proto3" json:"bar3,omitempty"`
+}
+
+func (x *ServerStreamResponse) Reset() {
+	*x = ServerStreamResponse{}
+}
+
+func (*ServerStreamResponse) ProtoMessage() {}
+
+func (x *ServerStreamResponse) GetBar3() uint64 {
+	if x != nil {
+		return x.Bar3
+	}
+	return 0
+}
+
+type BidirectionalStreamRequest struct {
+	unknownFields []byte
+	Foo4          uint64 `protobuf:"varint,6,opt,name=foo4,proto3" json:"foo4,omitempty"`
+}
+
+func (x *BidirectionalStreamRequest) Reset() {
+	*x = BidirectionalStreamRequest{}
+}
+
+func (*BidirectionalStreamRequest) ProtoMessage() {}
+
+func (x *BidirectionalStreamRequest) GetFoo4() uint64 {
+	if x != nil {
+		return x.Foo4
+	}
+	return 0
+}
+
+type BidirectionalStreamResponse struct {
+	unknownFields []byte
+	Bar4          uint64 `protobuf:"varint,7,opt,name=bar4,proto3" json:"bar4,omitempty"`
+}
+
+func (x *BidirectionalStreamResponse) Reset() {
+	*x = BidirectionalStreamResponse{}
+}
+
+func (*BidirectionalStreamResponse) ProtoMessage() {}
+
+func (x *BidirectionalStreamResponse) GetBar4() uint64 {
+	if x != nil {
+		return x.Bar4
+	}
+	return 0
+}
+
 func (m *TestRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -234,6 +342,234 @@ func (m *RetestResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ClientStreamRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClientStreamRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClientStreamRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Foo2 != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Foo2))
+		i--
+		dAtA[i] = 0x10
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ClientStreamResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClientStreamResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClientStreamResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Bar2 != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Bar2))
+		i--
+		dAtA[i] = 0x18
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ServerStreamRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ServerStreamRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ServerStreamRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Foo3 != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Foo3))
+		i--
+		dAtA[i] = 0x20
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ServerStreamResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ServerStreamResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ServerStreamResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Bar3 != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Bar3))
+		i--
+		dAtA[i] = 0x28
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BidirectionalStreamRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BidirectionalStreamRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BidirectionalStreamRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Foo4 != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Foo4))
+		i--
+		dAtA[i] = 0x30
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BidirectionalStreamResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BidirectionalStreamResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BidirectionalStreamResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Bar4 != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Bar4))
+		i--
+		dAtA[i] = 0x38
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *TestRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -281,6 +617,84 @@ func (m *RetestResponse) SizeVT() (n int) {
 	_ = l
 	if m.Foo != 0 {
 		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Foo))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClientStreamRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Foo2 != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Foo2))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClientStreamResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Bar2 != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Bar2))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ServerStreamRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Foo3 != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Foo3))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ServerStreamResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Bar3 != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Bar3))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BidirectionalStreamRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Foo4 != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Foo4))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BidirectionalStreamResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Bar4 != 0 {
+		n += 1 + protobuf_go_lite.SizeOfVarint(uint64(m.Bar4))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -540,6 +954,426 @@ func (m *RetestResponse) UnmarshalVT(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.Foo |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClientStreamRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClientStreamRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClientStreamRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Foo2", wireType)
+			}
+			m.Foo2 = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Foo2 |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClientStreamResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClientStreamResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClientStreamResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bar2", wireType)
+			}
+			m.Bar2 = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Bar2 |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ServerStreamRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ServerStreamRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ServerStreamRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Foo3", wireType)
+			}
+			m.Foo3 = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Foo3 |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ServerStreamResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ServerStreamResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ServerStreamResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bar3", wireType)
+			}
+			m.Bar3 = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Bar3 |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BidirectionalStreamRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BidirectionalStreamRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BidirectionalStreamRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Foo4", wireType)
+			}
+			m.Foo4 = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Foo4 |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BidirectionalStreamResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protobuf_go_lite.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BidirectionalStreamResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BidirectionalStreamResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bar4", wireType)
+			}
+			m.Bar4 = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protobuf_go_lite.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Bar4 |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

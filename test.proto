@@ -7,6 +7,9 @@ option go_package = "github.com/pantopic/wazero-grpc-server/test;pb";
 service TestService {
   rpc Test(TestRequest) returns (TestResponse) {}
   rpc Retest(RetestRequest) returns (RetestResponse) {}
+  rpc ClientStream(stream ClientStreamRequest) returns (ClientStreamResponse) {}
+  rpc ServerStream(ServerStreamRequest) returns (stream ServerStreamResponse) {}
+  rpc BidirectionalStream(stream BidirectionalStreamRequest) returns (stream BidirectionalStreamResponse) {}
 }
 
 message TestRequest {
@@ -21,4 +24,25 @@ message RetestRequest {
 }
 message RetestResponse {
   uint64 foo = 1;
+}
+
+message ClientStreamRequest {
+  uint64 foo2 = 2;
+}
+message ClientStreamResponse {
+  uint64 bar2 = 3;
+}
+
+message ServerStreamRequest {
+  uint64 foo3 = 4;
+}
+message ServerStreamResponse {
+  uint64 bar3 = 5;
+}
+
+message BidirectionalStreamRequest {
+  uint64 foo4 = 6;
+}
+message BidirectionalStreamResponse {
+  uint64 bar4 = 7;
 }

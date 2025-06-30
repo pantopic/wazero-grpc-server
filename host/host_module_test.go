@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"fmt"
 	"net"
 	"testing"
 
@@ -15,14 +16,17 @@ import (
 	"github.com/pantopic/wazero-grpc-server/host/pb"
 )
 
-//go:embed test\.wasm
-var testWasm []byte
-
 //go:embed test-easy\.wasm
 var testWasmEasy []byte
 
+//go:embed test-easy\.prod\.wasm
+var testWasmEasyProd []byte
+
 //go:embed test-lite\.wasm
 var testWasmLite []byte
+
+//go:embed test-lite\.prod\.wasm
+var testWasmLiteProd []byte
 
 func TestHostModule(t *testing.T) {
 	var (
@@ -36,23 +40,19 @@ func TestHostModule(t *testing.T) {
 
 	var hostModule *hostModule
 	t.Run(`register`, func(t *testing.T) {
-		hostModule = New(
-			WithCtxKeyMeta(`test_key_meta`),
-			WithCtxKeyServer(`test_key_server`),
-		)
+		hostModule = New()
 		hostModule.Register(ctx, r)
 	})
 
+	port := 9000
 	for _, tc := range []struct {
 		name string
 		wasm []byte
 	}{
-		{`testWasm`, testWasm},
 		{`testWasmEasy`, testWasmEasy},
 		{`testWasmLite`, testWasmLite},
-		{`testWasmProd`, testWasmProd},
-		{`testWasmProdEasy`, testWasmProdEasy},
-		{`testWasmProdLite`, testWasmProdLite},
+		{`testWasmEasyProd`, testWasmEasyProd},
+		{`testWasmLiteProd`, testWasmLiteProd},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			compiled, err := r.CompileModule(ctx, tc.wasm)
@@ -75,8 +75,9 @@ func TestHostModule(t *testing.T) {
 			}
 
 			s := grpc.NewServer()
-			addr := `:9001`
 			ctx = hostModule.RegisterService(ctx, s, mod)
+			port++
+			addr := fmt.Sprintf(`:%d`, port)
 			lis, err := net.Listen(`tcp`, addr)
 			if err != nil {
 				t.Fatalf(`%v`, err)
@@ -93,7 +94,7 @@ func TestHostModule(t *testing.T) {
 			}
 			client := pb.NewTestServiceClient(conn)
 			req := &pb.TestRequest{
-				Foo: 2,
+				Foo: 1,
 			}
 			res, err := client.Test(ctx, req)
 			if err != nil {
@@ -111,18 +112,27 @@ func TestHostModule(t *testing.T) {
 			if res2.Foo != 11 {
 				t.Fatalf(`Incorrect response value in retest response: %d`, res2.Foo)
 			}
+			cs, err := client.ClientStream(ctx)
+			if err != nil {
+				t.Fatalf(`%v`, err)
+			}
+			for range 10 {
+				if err = cs.Send(&pb.ClientStreamRequest{
+					Foo2: 2,
+				}); err != nil {
+					t.Fatalf(`%v`, err)
+				}
+			}
+			res3, err := cs.CloseAndRecv()
+			if err != nil {
+				t.Fatalf(`%v`, err)
+			}
+			if res3.Bar2 != 20 {
+				t.Fatalf(`Incorrect response value in ClientStream response: %d`, res3.Bar2)
+			}
 		})
 	}
 }
-
-//go:embed test\.prod\.wasm
-var testWasmProd []byte
-
-//go:embed test-easy\.prod\.wasm
-var testWasmProdEasy []byte
-
-//go:embed test-lite\.prod\.wasm
-var testWasmProdLite []byte
 
 func BenchmarkHostModule(b *testing.B) {
 	var ctx = context.Background()
@@ -137,12 +147,10 @@ func BenchmarkHostModule(b *testing.B) {
 		name string
 		wasm []byte
 	}{
-		{`testWasm`, testWasm},
 		{`testWasmEasy`, testWasmEasy},
 		{`testWasmLite`, testWasmLite},
-		{`testWasmProd`, testWasmProd},
-		{`testWasmProdEasy`, testWasmProdEasy},
-		{`testWasmProdLite`, testWasmProdLite},
+		{`testWasmEasyProd`, testWasmEasyProd},
+		{`testWasmLiteProd`, testWasmLiteProd},
 	} {
 		compiled, err := r.CompileModule(ctx, tc.wasm)
 		if err != nil {

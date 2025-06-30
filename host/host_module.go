@@ -14,6 +14,7 @@ import (
 var (
 	DefaultCtxKeyMeta   = `wazero_grpc_server_meta_key`
 	DefaultCtxKeyServer = `wazero_grpc_server`
+	DefaultCtxKeyNext   = `wazero_grpc_next`
 )
 
 type meta struct {
@@ -49,7 +50,40 @@ func New(opts ...Option) *hostModule {
 // Called once after a runtime is created, usually on startup
 func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error) {
 	builder := r.NewHostModuleBuilder("grpc")
-	// TODO - Add callbacks (i.e. Watch message emission)
+	register := func(name string, fn func(ctx context.Context, m api.Module, stack []uint64)) {
+		builder = builder.NewFunctionBuilder().WithGoModuleFunction(api.GoModuleFunc(fn), nil, nil).Export(name)
+	}
+	for name, fn := range map[string]any{
+		"Recv": func(ctx context.Context) (m []byte, ok bool) {
+			m, ok = <-get[chan []byte](ctx, DefaultCtxKeyNext)
+			// log.Printf(`recv: %v`, ok)
+			return
+		},
+		"Send": func(ctx context.Context, m []byte) {
+			// Send message
+		},
+	} {
+		switch fn := fn.(type) {
+		case func(context.Context) ([]byte, bool):
+			register(name, func(ctx context.Context, m api.Module, stack []uint64) {
+				meta := get[*meta](ctx, p.ctxKeyMeta)
+				b, ok := fn(ctx)
+				if !ok {
+					setErrCode(m, meta, errCodeDone)
+					return
+				}
+				setErrCode(m, meta, errCodeEmpty)
+				setMsg(m, meta, b)
+			})
+		case func(context.Context, []byte):
+			register(name, func(ctx context.Context, m api.Module, stack []uint64) {
+				meta := get[*meta](ctx, p.ctxKeyMeta)
+				fn(ctx, msg(m, meta))
+			})
+		default:
+			log.Panicf("Method signature implementation missing: %#v", fn)
+		}
+	}
 	p.module, err = builder.Instantiate(ctx)
 	return
 }
@@ -109,6 +143,10 @@ func errCode(m api.Module, meta *meta) uint32 {
 	return readUint32(m, meta.ptrErrCode)
 }
 
+func setErrCode(m api.Module, meta *meta, code uint32) {
+	writeUint32(m, meta.ptrErrCode, uint32(code))
+}
+
 func methodBuf(m api.Module, meta *meta) []byte {
 	return read(m, meta.ptrMethod, 0, meta.ptrMethodMax)
 }
@@ -131,7 +169,7 @@ func setMsg(m api.Module, meta *meta, msg []byte) {
 	writeUint32(m, meta.ptrMsgLen, uint32(len(msg)))
 }
 
-func getError(m api.Module, meta *meta) *Error {
+func getError(m api.Module, meta *meta) error {
 	if err, ok := errorsByCode[errCode(m, meta)]; ok {
 		return err
 	}
