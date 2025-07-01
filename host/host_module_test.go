@@ -61,7 +61,7 @@ func TestHostModule(t *testing.T) {
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
-			ctx, err = hostModule.RegisterService(ctx, s, pool)
+			ctx, err = hostModule.RegisterServices(ctx, s, pool)
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
@@ -154,7 +154,7 @@ func BenchmarkHostModule(b *testing.B) {
 				b.Fatalf(`%v`, err)
 			}
 			addr := `:9001`
-			ctx, err = hostModule.RegisterService(ctx, s, pool)
+			ctx, err = hostModule.RegisterServices(ctx, s, pool)
 			if err != nil {
 				b.Fatalf(`%v`, err)
 			}
@@ -195,7 +195,7 @@ func BenchmarkHostModule(b *testing.B) {
 					b.Fatalf(`%v`, err)
 				}
 				addr := `:9001`
-				ctx, err = hostModule.RegisterService(ctx, s, pool)
+				ctx, err = hostModule.RegisterServices(ctx, s, pool)
 				if err != nil {
 					b.Fatalf(`%v`, err)
 				}

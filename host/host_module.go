@@ -107,9 +107,9 @@ func (p *hostModule) initContext(ctx context.Context, m api.Module) (context.Con
 	return context.WithValue(ctx, p.ctxKeyMeta, meta), meta, nil
 }
 
-// RegisterService attaches the grpc service(s) to the grpc server
+// RegisterServices attaches the grpc service(s) to the grpc server
 // Called once before server open, usually given a module instance pool
-func (p *hostModule) RegisterService(ctx context.Context, s *grpc.Server, pool wazeropool.InstancePool) (context.Context, error) {
+func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.InstancePool) (context.Context, error) {
 	mod := pool.Get()
 	defer pool.Put(mod)
 	ctx, meta, err := p.initContext(ctx, mod)
@@ -119,9 +119,38 @@ func (p *hostModule) RegisterService(ctx context.Context, s *grpc.Server, pool w
 	// msg = "/package1.ServiceName/u.method1,u.method2,c.method3/service2.ServiceName/u.method1,s.method2"
 	parts := strings.Split(string(msg(mod, meta)), "/")
 	for i := 1; i+2 <= len(parts); i += 2 {
-		registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","))
+		p.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","))
 	}
 	return ctx, nil
+}
+
+func (p *hostModule) registerService(s *grpc.Server, pool wazeropool.InstancePool, meta *meta, serviceName string, methods []string) {
+	h := &grpcHandler{pool, meta}
+	fakeDesc := &grpc.ServiceDesc{
+		ServiceName: serviceName,
+		HandlerType: (*any)(nil),
+	}
+	for _, m := range methods {
+		parts := strings.Split(m, ".")
+		if len(parts) < 2 {
+			log.Panicf(`%s %#v`, methods, parts)
+		}
+		var d = grpc.StreamDesc{
+			StreamName:    parts[1],
+			ServerStreams: true,
+			ClientStreams: true,
+		}
+		switch parts[0] {
+		case "u":
+			d.Handler = h.handler(newHandlerUnary)
+		case "c":
+			d.Handler = h.handler(newHandlerClientStream)
+		case "s":
+			d.Handler = h.handler(newHandlerServerStream)
+		}
+		fakeDesc.Streams = append(fakeDesc.Streams, d)
+	}
+	s.RegisterService(fakeDesc, h)
 }
 
 func (p *hostModule) Stop() (err error) {
