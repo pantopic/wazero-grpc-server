@@ -109,7 +109,7 @@ func (p *hostModule) initContext(ctx context.Context, m api.Module) (context.Con
 
 // RegisterService attaches the grpc service(s) to the grpc server
 // Called once before server open, usually given a module instance pool
-func (p *hostModule) RegisterService(ctx context.Context, s *grpc.Server, pool wazeropool.Module) (context.Context, error) {
+func (p *hostModule) RegisterService(ctx context.Context, s *grpc.Server, pool wazeropool.InstancePool) (context.Context, error) {
 	mod := pool.Get()
 	defer pool.Put(mod)
 	ctx, meta, err := p.initContext(ctx, mod)

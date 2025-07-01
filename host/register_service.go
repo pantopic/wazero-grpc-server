@@ -12,7 +12,7 @@ import (
 	"github.com/pantopic/wazero-pool"
 )
 
-func registerService(s *grpc.Server, pool wazeropool.Module, meta *meta, serviceName string, methods []string) {
+func registerService(s *grpc.Server, pool wazeropool.InstancePool, meta *meta, serviceName string, methods []string) {
 	h := &grpcHandler{pool, meta}
 	fakeDesc := &grpc.ServiceDesc{
 		ServiceName: serviceName,

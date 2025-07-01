@@ -120,8 +120,6 @@ BenchmarkHostModule/parallel-8/testWasmEasyProd-16        132819              86
 BenchmarkHostModule/parallel-8/testWasmLiteProd-16        144176              7314 ns/op
 BenchmarkHostModule/parallel-16/testWasmEasyProd-16       187375              8170 ns/op
 BenchmarkHostModule/parallel-16/testWasmLiteProd-16       185180              7023 ns/op
-PASS
-ok      github.com/pantopic/wazero-grpc-server/host     19.806s
 ```
 
 ## Roadmap
