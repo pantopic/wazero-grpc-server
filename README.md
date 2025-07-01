@@ -106,20 +106,20 @@ in other ways.
 
 ```go
 > make bench
-BenchmarkHostModule/linear/testWasmEasy-16                 11444             91122 ns/op
-BenchmarkHostModule/linear/testWasmLite-16                 13618             83596 ns/op
-BenchmarkHostModule/linear/testWasmEasyProd-16             12727             89709 ns/op
-BenchmarkHostModule/linear/testWasmLiteProd-16             12976             91205 ns/op
-BenchmarkHostModule/parallel-0/testWasmEasyProd-16         66570             15778 ns/op
-BenchmarkHostModule/parallel-0/testWasmLiteProd-16         88696             15303 ns/op
-BenchmarkHostModule/parallel-2/testWasmEasyProd-16        101528             11630 ns/op
-BenchmarkHostModule/parallel-2/testWasmLiteProd-16         98217             11166 ns/op
-BenchmarkHostModule/parallel-4/testWasmEasyProd-16        144388              9448 ns/op
-BenchmarkHostModule/parallel-4/testWasmLiteProd-16        128978              8996 ns/op
-BenchmarkHostModule/parallel-8/testWasmEasyProd-16        132819              8623 ns/op
-BenchmarkHostModule/parallel-8/testWasmLiteProd-16        144176              7314 ns/op
-BenchmarkHostModule/parallel-16/testWasmEasyProd-16       187375              8170 ns/op
-BenchmarkHostModule/parallel-16/testWasmLiteProd-16       185180              7023 ns/op
+BenchmarkHostModule/linear/testWasmEasy-16                 13426             87203 ns/op
+BenchmarkHostModule/linear/testWasmLite-16                 13021             82340 ns/op
+BenchmarkHostModule/linear/testWasmEasyProd-16             13341             85288 ns/op
+BenchmarkHostModule/linear/testWasmLiteProd-16             14802             81192 ns/op
+BenchmarkHostModule/parallel-0/testWasmEasyProd-16         96280             12912 ns/op
+BenchmarkHostModule/parallel-0/testWasmLiteProd-16         86798             12274 ns/op
+BenchmarkHostModule/parallel-2/testWasmEasyProd-16        124564              8662 ns/op
+BenchmarkHostModule/parallel-2/testWasmLiteProd-16        121425              8846 ns/op
+BenchmarkHostModule/parallel-4/testWasmEasyProd-16        168687              6128 ns/op
+BenchmarkHostModule/parallel-4/testWasmLiteProd-16        179581              6390 ns/op
+BenchmarkHostModule/parallel-8/testWasmEasyProd-16        192849              5450 ns/op
+BenchmarkHostModule/parallel-8/testWasmLiteProd-16        193087              6367 ns/op
+BenchmarkHostModule/parallel-16/testWasmEasyProd-16       204992              5867 ns/op
+BenchmarkHostModule/parallel-16/testWasmLiteProd-16       193818              5736 ns/op
 ```
 
 ## Roadmap

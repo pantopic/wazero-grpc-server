@@ -31,8 +31,8 @@ func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.
 		mod := h.pool.Get()
 		defer h.pool.Put(mod)
 		clientStream := f(ctx, mod, h.meta, fullMethodName)
-		s2cErrChan := h.forwardServerToClient(serverStream, clientStream)
-		c2sErrChan := h.forwardClientToServer(clientStream, serverStream)
+		s2cErrChan := h.forwardServerToWazero(serverStream, clientStream)
+		c2sErrChan := h.forwardWazeroToServer(clientStream, serverStream)
 		for range 2 {
 			select {
 			case s2cErr := <-s2cErrChan:
@@ -54,7 +54,7 @@ func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.
 	}
 }
 
-func (h *grpcHandler) forwardClientToServer(src grpc.ClientStream, dst grpc.ServerStream) chan error {
+func (h *grpcHandler) forwardWazeroToServer(src grpc.ClientStream, dst grpc.ServerStream) chan error {
 	ret := make(chan error, 1)
 	go func() {
 		f := &emptypb.Empty{}
@@ -83,7 +83,7 @@ func (h *grpcHandler) forwardClientToServer(src grpc.ClientStream, dst grpc.Serv
 	return ret
 }
 
-func (h *grpcHandler) forwardServerToClient(src grpc.ServerStream, dst grpc.ClientStream) chan error {
+func (h *grpcHandler) forwardServerToWazero(src grpc.ServerStream, dst grpc.ClientStream) chan error {
 	ret := make(chan error, 1)
 	go func() {
 		f := &emptypb.Empty{}

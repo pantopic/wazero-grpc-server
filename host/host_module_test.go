@@ -111,7 +111,7 @@ func TestHostModule(t *testing.T) {
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
-			for range 10 {
+			for range 50 {
 				if err = cs.Send(&pb.ClientStreamRequest{
 					Foo2: 2,
 				}); err != nil {
@@ -122,7 +122,7 @@ func TestHostModule(t *testing.T) {
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
-			if res3.Bar2 != 20 {
+			if res3.Bar2 != 100 {
 				t.Fatalf(`Incorrect response value in ClientStream response: %d`, res3.Bar2)
 			}
 		})
