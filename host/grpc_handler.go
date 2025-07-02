@@ -16,7 +16,7 @@ import (
 )
 
 type grpcHandler struct {
-	pool wazeropool.InstancePool
+	pool wazeropool.Instance
 	meta *meta
 }
 
