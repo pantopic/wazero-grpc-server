@@ -93,8 +93,8 @@ The guest SDK is serialization agnostic in order to provide users with more cont
 
 See examples for protobuf message serialization options:
 
-- [test-easy](/test-easy) - `easyproto` manually-generated (`113kb` binary, `3s` build time)
-- [test-lite](/test-lite) - `protobuf-go-lite` auto-generated (`113kb` binary, `3s` build time, recommended)
+- [test-easy](/test-easy) - `easyproto` manually-generated (`97kb` binary, `3s` build time)
+- [test-lite](/test-lite) - `protobuf-go-lite` auto-generated (`97kb` binary, `3s` build time, recommended)
 
 These options and others can be used for protobuf serialization in WASM but some standard approaches to protobuf
 serialization like `protoc-gen-go` require reflection which tinygo does not support.
@@ -106,20 +106,20 @@ in other ways.
 
 ```go
 > make bench
-BenchmarkHostModule/linear/testWasmEasy-16                 13426             87203 ns/op
-BenchmarkHostModule/linear/testWasmLite-16                 13021             82340 ns/op
-BenchmarkHostModule/linear/testWasmEasyProd-16             13341             85288 ns/op
-BenchmarkHostModule/linear/testWasmLiteProd-16             14802             81192 ns/op
-BenchmarkHostModule/parallel-0/testWasmEasyProd-16         96280             12912 ns/op
-BenchmarkHostModule/parallel-0/testWasmLiteProd-16         86798             12274 ns/op
-BenchmarkHostModule/parallel-2/testWasmEasyProd-16        124564              8662 ns/op
-BenchmarkHostModule/parallel-2/testWasmLiteProd-16        121425              8846 ns/op
-BenchmarkHostModule/parallel-4/testWasmEasyProd-16        168687              6128 ns/op
-BenchmarkHostModule/parallel-4/testWasmLiteProd-16        179581              6390 ns/op
-BenchmarkHostModule/parallel-8/testWasmEasyProd-16        192849              5450 ns/op
-BenchmarkHostModule/parallel-8/testWasmLiteProd-16        193087              6367 ns/op
-BenchmarkHostModule/parallel-16/testWasmEasyProd-16       204992              5867 ns/op
-BenchmarkHostModule/parallel-16/testWasmLiteProd-16       193818              5736 ns/op
+BenchmarkHostModule/linear/testWasmEasy-16                 13602             78630 ns/op
+BenchmarkHostModule/linear/testWasmLite-16                 14311             76914 ns/op
+BenchmarkHostModule/linear/testWasmEasyProd-16             13910             78315 ns/op
+BenchmarkHostModule/linear/testWasmLiteProd-16             14396             76460 ns/op
+BenchmarkHostModule/parallel-0/testWasmEasyProd-16         85554             12037 ns/op
+BenchmarkHostModule/parallel-0/testWasmLiteProd-16         94183             11982 ns/op
+BenchmarkHostModule/parallel-2/testWasmEasyProd-16        148317              8109 ns/op
+BenchmarkHostModule/parallel-2/testWasmLiteProd-16        129385              8135 ns/op
+BenchmarkHostModule/parallel-4/testWasmEasyProd-16        187816              6191 ns/op
+BenchmarkHostModule/parallel-4/testWasmLiteProd-16        199989              6017 ns/op
+BenchmarkHostModule/parallel-8/testWasmEasyProd-16        231013              5185 ns/op
+BenchmarkHostModule/parallel-8/testWasmLiteProd-16        232335              5172 ns/op
+BenchmarkHostModule/parallel-16/testWasmEasyProd-16       248992              4871 ns/op
+BenchmarkHostModule/parallel-16/testWasmLiteProd-16       247765              4928 ns/op
 ```
 
 ## Roadmap

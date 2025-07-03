@@ -5,16 +5,16 @@ build:
 	@go build -ldflags="-s -w" -o _dist/pantopic
 
 wasm-easy:
-	@cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-easy.wasm
+	@cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=leaking -scheduler=none -o ../host/test-easy.wasm
 
 wasm-easy-prod:
-	@cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=conservative -scheduler=none -o ../host/test-easy.prod.wasm -no-debug
+	@cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=leaking -scheduler=none -o ../host/test-easy.prod.wasm -no-debug
 
 wasm-lite:
-	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=conservative -scheduler=none -o ../host/test-lite.wasm
+	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=leaking -scheduler=none -o ../host/test-lite.wasm
 
 wasm-lite-prod:
-	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=conservative -scheduler=none -o ../host/test-lite.prod.wasm -no-debug
+	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=leaking -scheduler=none -o ../host/test-lite.prod.wasm -no-debug
 
 wasm-all: wasm-easy wasm-lite wasm-easy-prod wasm-lite-prod
 
