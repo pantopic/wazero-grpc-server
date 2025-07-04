@@ -46,6 +46,10 @@ func New(opts ...Option) *hostModule {
 	return p
 }
 
+func (p *hostModule) Uri() string {
+	return "github.com/pantopic/wazero-grpc-server"
+}
+
 // Register instantiates the host module, making it available to all module instances in this runtime
 // Called once after a runtime is created, usually on startup
 func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error) {
@@ -88,10 +92,9 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 	return
 }
 
-// initContext populates the meta page in context for a given module instance
-// Called per module instance immediately after module instantiation
+// initContext retrieves the meta page from the wasm module
 func (p *hostModule) initContext(ctx context.Context, m api.Module) (context.Context, *meta, error) {
-	stack, err := m.ExportedFunction(`grpc`).Call(ctx)
+	stack, err := m.ExportedFunction(`__grpc`).Call(ctx)
 	if err != nil {
 		return ctx, nil, err
 	}

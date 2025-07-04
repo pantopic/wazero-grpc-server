@@ -19,8 +19,8 @@ var (
 	services = map[string]*Service{}
 )
 
-//export grpc
-func grpc() (res uint32) {
+//export __grpc
+func __grpc() (res uint32) {
 	meta[0] = uint32(uintptr(unsafe.Pointer(&methodMax)))
 	meta[1] = uint32(uintptr(unsafe.Pointer(&methodLen)))
 	meta[2] = uint32(uintptr(unsafe.Pointer(&method[0])))
@@ -155,5 +155,5 @@ func grpcRecv()
 func grpcSend()
 
 // Fix for lint rule `unusedfunc`
-var _ = grpc
+var _ = __grpc
 var _ = grpcCall
