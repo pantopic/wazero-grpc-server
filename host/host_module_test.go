@@ -58,7 +58,8 @@ func TestHostModule(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := grpc.NewServer()
 			cfg := wazero.NewModuleConfig().WithStdout(out)
-			pool, err := wazeropool.New(ctx, r, tc.wasm, cfg)
+			pool, err := wazeropool.New(ctx, r, tc.wasm,
+				wazeropool.WithModuleConfig(cfg))
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
@@ -153,7 +154,7 @@ func BenchmarkHostModule(b *testing.B) {
 		} {
 			s := grpc.NewServer()
 			cfg := wazero.NewModuleConfig().WithStdout(out)
-			pool, err := wazeropool.New(ctx, r, tc.wasm, cfg)
+			pool, err := wazeropool.New(ctx, r, tc.wasm, wazeropool.WithModuleConfig(cfg))
 			if err != nil {
 				b.Fatalf(`%v`, err)
 			}
@@ -197,7 +198,9 @@ func BenchmarkHostModule(b *testing.B) {
 			} {
 				s := grpc.NewServer()
 				cfg := wazero.NewModuleConfig().WithStdout(out)
-				pool, err := wazeropool.New(ctx, r, tc.wasm, cfg, wazeropool.WithLimit(n))
+				pool, err := wazeropool.New(ctx, r, tc.wasm,
+					wazeropool.WithModuleConfig(cfg),
+					wazeropool.WithLimit(n))
 				if err != nil {
 					b.Fatalf(`%v`, err)
 				}

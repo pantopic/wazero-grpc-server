@@ -52,7 +52,7 @@ func (p *hostModule) Name() string {
 
 // Register instantiates the host module, making it available to all module instances in this runtime
 func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error) {
-	builder := r.NewHostModuleBuilder("grpc")
+	builder := r.NewHostModuleBuilder("pantopic/wazero-grpc-server")
 	register := func(name string, fn func(ctx context.Context, m api.Module, stack []uint64)) {
 		builder = builder.NewFunctionBuilder().WithGoModuleFunction(api.GoModuleFunc(fn), nil, nil).Export(name)
 	}
@@ -106,6 +106,12 @@ func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Con
 	meta.ptrMsg, _ = m.Memory().ReadUint32Le(ptr + 20)
 	meta.ptrErrCode, _ = m.Memory().ReadUint32Le(ptr + 24)
 	return context.WithValue(ctx, p.ctxKeyMeta, meta), nil
+}
+
+// ContextCopy populates dst context with the meta page from src context.
+func (h *hostModule) ContextCopy(src, dst context.Context) context.Context {
+	dst = context.WithValue(dst, h.ctxKeyMeta, get[*meta](src, h.ctxKeyMeta))
+	return dst
 }
 
 // RegisterServices attaches the grpc service(s) to the grpc server

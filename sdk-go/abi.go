@@ -6,27 +6,26 @@ import (
 	"unsafe"
 )
 
-const ()
-
 var (
-	methodMax uint32 = 256
+	methodCap uint32 = 256
 	methodLen uint32
-	msgMax    uint32 = 1.5 * 1024 * 1024
-	msgLen    uint32
-	errCode   uint32
-	method    = make([]byte, int(methodMax))
-	msg       = make([]byte, int(msgMax))
-	meta      = make([]uint32, 7)
+	method    = make([]byte, int(methodCap))
 
+	msgCap uint32 = 1.5 * 1024 * 1024
+	msgLen uint32
+	msg    = make([]byte, int(msgCap))
+
+	errCode  uint32
+	meta     = make([]uint32, 7)
 	services = map[string]*Service{}
 )
 
 //export __grpcServerInit
 func __grpcServerInit() (res uint32) {
-	meta[0] = uint32(uintptr(unsafe.Pointer(&methodMax)))
+	meta[0] = uint32(uintptr(unsafe.Pointer(&methodCap)))
 	meta[1] = uint32(uintptr(unsafe.Pointer(&methodLen)))
 	meta[2] = uint32(uintptr(unsafe.Pointer(&method[0])))
-	meta[3] = uint32(uintptr(unsafe.Pointer(&msgMax)))
+	meta[3] = uint32(uintptr(unsafe.Pointer(&msgCap)))
 	meta[4] = uint32(uintptr(unsafe.Pointer(&msgLen)))
 	meta[5] = uint32(uintptr(unsafe.Pointer(&msg[0])))
 	meta[6] = uint32(uintptr(unsafe.Pointer(&errCode)))
@@ -147,14 +146,6 @@ func __grpcServerCall() {
 		return
 	}
 }
-
-//go:wasm-module grpc
-//export Recv
-func grpcRecv()
-
-//go:wasm-module grpc
-//export Send
-func grpcSend()
 
 // Fix for lint rule `unusedfunc`
 var _ = __grpcServerInit
