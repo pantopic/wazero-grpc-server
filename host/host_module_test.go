@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -61,7 +62,10 @@ func TestHostModule(t *testing.T) {
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
-			ctx, err = hostModule.RegisterServices(ctx, s, pool)
+			pool.Run(func(mod api.Module) {
+				ctx, err = hostModule.InitContext(ctx, mod)
+			})
+			err = hostModule.RegisterServices(ctx, s, pool)
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
@@ -154,7 +158,10 @@ func BenchmarkHostModule(b *testing.B) {
 				b.Fatalf(`%v`, err)
 			}
 			addr := `:9001`
-			ctx, err = hostModule.RegisterServices(ctx, s, pool)
+			pool.Run(func(mod api.Module) {
+				ctx, err = hostModule.InitContext(ctx, mod)
+			})
+			err = hostModule.RegisterServices(ctx, s, pool)
 			if err != nil {
 				b.Fatalf(`%v`, err)
 			}
@@ -195,7 +202,10 @@ func BenchmarkHostModule(b *testing.B) {
 					b.Fatalf(`%v`, err)
 				}
 				addr := `:9001`
-				ctx, err = hostModule.RegisterServices(ctx, s, pool)
+				pool.Run(func(mod api.Module) {
+					ctx, err = hostModule.InitContext(ctx, mod)
+				})
+				err = hostModule.RegisterServices(ctx, s, pool)
 				if err != nil {
 					b.Fatalf(`%v`, err)
 				}

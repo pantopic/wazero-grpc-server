@@ -46,12 +46,11 @@ func New(opts ...Option) *hostModule {
 	return p
 }
 
-func (p *hostModule) Uri() string {
-	return "github.com/pantopic/wazero-grpc-server"
+func (p *hostModule) Name() string {
+	return "pantopic/wazero-grpc-server"
 }
 
 // Register instantiates the host module, making it available to all module instances in this runtime
-// Called once after a runtime is created, usually on startup
 func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error) {
 	builder := r.NewHostModuleBuilder("grpc")
 	register := func(name string, fn func(ctx context.Context, m api.Module, stack []uint64)) {
@@ -60,11 +59,10 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 	for name, fn := range map[string]any{
 		"Recv": func(ctx context.Context) (m []byte, ok bool) {
 			m, ok = <-get[chan []byte](ctx, DefaultCtxKeyNext)
-			// log.Printf(`recv: %v`, ok)
 			return
 		},
 		"Send": func(ctx context.Context, m []byte) {
-			// Send message
+			// TODO - Sdd server streaming support
 		},
 	} {
 		switch fn := fn.(type) {
@@ -92,11 +90,11 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 	return
 }
 
-// initContext retrieves the meta page from the wasm module
-func (p *hostModule) initContext(ctx context.Context, m api.Module) (context.Context, *meta, error) {
-	stack, err := m.ExportedFunction(`__grpc`).Call(ctx)
+// InitContext retrieves the meta page from the wasm module
+func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Context, error) {
+	stack, err := m.ExportedFunction(`__grpcServerInit`).Call(ctx)
 	if err != nil {
-		return ctx, nil, err
+		return ctx, err
 	}
 	meta := &meta{}
 	ptr := uint32(stack[0])
@@ -107,24 +105,21 @@ func (p *hostModule) initContext(ctx context.Context, m api.Module) (context.Con
 	meta.ptrMsgLen, _ = m.Memory().ReadUint32Le(ptr + 16)
 	meta.ptrMsg, _ = m.Memory().ReadUint32Le(ptr + 20)
 	meta.ptrErrCode, _ = m.Memory().ReadUint32Le(ptr + 24)
-	return context.WithValue(ctx, p.ctxKeyMeta, meta), meta, nil
+	return context.WithValue(ctx, p.ctxKeyMeta, meta), nil
 }
 
 // RegisterServices attaches the grpc service(s) to the grpc server
 // Called once before server open, usually given a module instance pool
-func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance) (context.Context, error) {
+func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance) error {
 	mod := pool.Get()
 	defer pool.Put(mod)
-	ctx, meta, err := p.initContext(ctx, mod)
-	if err != nil {
-		return ctx, err
-	}
-	// msg = "/package1.ServiceName/u.method1,u.method2,c.method3/service2.ServiceName/u.method1,s.method2"
+	meta := get[*meta](ctx, p.ctxKeyMeta)
+	// Format: msg = "/package1.ServiceName/u.method1,u.method2,c.method3/service2.ServiceName/u.method1,s.method2"
 	parts := strings.Split(string(msg(mod, meta)), "/")
 	for i := 1; i+2 <= len(parts); i += 2 {
 		p.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","))
 	}
-	return ctx, nil
+	return nil
 }
 
 func (p *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string) {

@@ -7,8 +7,3 @@ func WithCtxKeyMeta(key string) Option {
 		p.ctxKeyMeta = key
 	}
 }
-func WithCtxKeyServer(key string) Option {
-	return func(p *hostModule) {
-		p.ctxKeyServer = key
-	}
-}

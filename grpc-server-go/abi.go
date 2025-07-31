@@ -6,6 +6,8 @@ import (
 	"unsafe"
 )
 
+const ()
+
 var (
 	methodMax uint32 = 256
 	methodLen uint32
@@ -19,8 +21,8 @@ var (
 	services = map[string]*Service{}
 )
 
-//export __grpc
-func __grpc() (res uint32) {
+//export __grpcServerInit
+func __grpcServerInit() (res uint32) {
 	meta[0] = uint32(uintptr(unsafe.Pointer(&methodMax)))
 	meta[1] = uint32(uintptr(unsafe.Pointer(&methodLen)))
 	meta[2] = uint32(uintptr(unsafe.Pointer(&method[0])))
@@ -67,8 +69,8 @@ func getMethod() []byte {
 	return method[:methodLen]
 }
 
-//export grpcCall
-func grpcCall() {
+//export __grpcServerCall
+func __grpcServerCall() {
 	m := string(getMethod())
 	parts := strings.Split(m, "/")
 	if len(parts) != 3 {
@@ -155,5 +157,5 @@ func grpcRecv()
 func grpcSend()
 
 // Fix for lint rule `unusedfunc`
-var _ = __grpc
-var _ = grpcCall
+var _ = __grpcServerInit
+var _ = __grpcServerCall

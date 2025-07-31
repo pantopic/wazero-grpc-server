@@ -1,24 +1,20 @@
-dev:
-	@go build -ldflags="-s -w" -o _dist/pantopic && cd cmd/standalone && docker compose up --build
-
-build:
-	@go build -ldflags="-s -w" -o _dist/pantopic
+work:
+	go work use grpc-server-go
+	go work use test-easy
+	go work use test-lite
+	go work use host
 
 wasm-easy:
 	@cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=leaking -scheduler=none -o ../host/test-easy.wasm
-
 wasm-easy-prod:
 	@cd test-easy && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=leaking -scheduler=none -o ../host/test-easy.prod.wasm -no-debug
-
 wasm-lite:
 	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=leaking -scheduler=none -o ../host/test-lite.wasm
-
 wasm-lite-prod:
 	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=leaking -scheduler=none -o ../host/test-lite.prod.wasm -no-debug
-
-wasm-all: wasm-easy wasm-lite wasm-easy-prod wasm-lite-prod
-
-wasm-all-prod: wasm-easy-prod wasm-lite-prod
+wasm: wasm-easy wasm-lite
+wasm-prod: wasm-easy-prod wasm-lite-prod
+wasm-all: wasm wasm-prod
 
 test:
 	@cd host && go test . -v -cover

@@ -57,7 +57,7 @@ func (cs *handlerClientStream) SendMsg(m any) (err error) {
 		setMsg(cs.mod, cs.meta, msg)
 		setErrCode(cs.mod, cs.meta, errCodeEmpty)
 		go func() {
-			_, err := cs.mod.ExportedFunction("grpcCall").Call(cs.ctx)
+			_, err := cs.mod.ExportedFunction("__grpcServerCall").Call(cs.ctx)
 			if err != nil {
 				log.Println(err)
 			}

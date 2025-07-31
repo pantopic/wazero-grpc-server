@@ -127,6 +127,10 @@ BenchmarkHostModule/parallel-16/testWasmLiteProd-16       247765              49
 This project is in alpha. Breaking API changes should be expected until Beta.
 
 - `v0.0.x` - Alpha
+  - [ ] Server streaming support
+  - [ ] Client streaming support
+  - [ ] Bidirectional streaming support
+  - [ ] Asynchronous unary response
   - [ ] Stabilize API
 - `v0.x.x` - Beta
   - [ ] Finalize API

@@ -45,7 +45,7 @@ func (cs *handlerUnary) SendMsg(m any) (err error) {
 	}
 	setMethod(cs.mod, cs.meta, []byte(cs.method))
 	setMsg(cs.mod, cs.meta, msg)
-	cs.mod.ExportedFunction("grpcCall").Call(cs.ctx)
+	cs.mod.ExportedFunction("__grpcServerCall").Call(cs.ctx)
 	cs.ready <- true
 	return
 }
