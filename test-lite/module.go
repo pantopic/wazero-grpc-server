@@ -5,7 +5,7 @@ import (
 
 	proto "github.com/aperturerobotics/protobuf-go-lite"
 
-	"github.com/pantopic/wazero-grpc-server/grpc-server-go"
+	"github.com/pantopic/wazero-grpc-server/sdk-go"
 	"github.com/pantopic/wazero-grpc-server/test-lite/pb"
 )
 

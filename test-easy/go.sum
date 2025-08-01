@@ -1,2 +1,4 @@
 github.com/VictoriaMetrics/easyproto v0.1.4 h1:r8cNvo8o6sR4QShBXQd1bKw/VVLSQma/V2KhTBPf+Sc=
 github.com/VictoriaMetrics/easyproto v0.1.4/go.mod h1:QlGlzaJnDfFd8Lk6Ci/fuLxfTo3/GThPs2KH23mv710=
+github.com/pantopic/wazero-grpc-server/sdk-go v0.0.8 h1:3vIY5H/Y7r/ULbgdIeqG9dDzwBltSzSs4XYSg07ZgJE=
+github.com/pantopic/wazero-grpc-server/sdk-go v0.0.8/go.mod h1:hGD7Xh7atAX5dKKcJ0YX97RapK8WlXzw8ViLiIMtNtI=

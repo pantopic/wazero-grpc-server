@@ -3,7 +3,7 @@ package main
 import (
 	"iter"
 
-	"github.com/pantopic/wazero-grpc-server/grpc-server-go"
+	"github.com/pantopic/wazero-grpc-server/sdk-go"
 	"github.com/pantopic/wazero-grpc-server/test-easy/pb"
 )
 
