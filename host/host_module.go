@@ -13,6 +13,8 @@ import (
 	"github.com/pantopic/wazero-pool"
 )
 
+const Name = "pantopic/wazero-grpc-server"
+
 var (
 	DefaultCtxKeyMeta = `wazero_grpc_server_meta_key`
 	DefaultCtxKeyNext = `wazero_grpc_next`
@@ -47,12 +49,12 @@ func New(opts ...Option) *hostModule {
 }
 
 func (p *hostModule) Name() string {
-	return "pantopic/wazero-grpc-server"
+	return Name
 }
 
 // Register instantiates the host module, making it available to all module instances in this runtime
 func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error) {
-	builder := r.NewHostModuleBuilder("pantopic/wazero-grpc-server")
+	builder := r.NewHostModuleBuilder(Name)
 	register := func(name string, fn func(ctx context.Context, m api.Module, stack []uint64)) {
 		builder = builder.NewFunctionBuilder().WithGoModuleFunction(api.GoModuleFunc(fn), nil, nil).Export(name)
 	}
@@ -98,13 +100,17 @@ func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Con
 	}
 	meta := &meta{}
 	ptr := uint32(stack[0])
-	meta.ptrMethodMax, _ = m.Memory().ReadUint32Le(ptr)
-	meta.ptrMethodLen, _ = m.Memory().ReadUint32Le(ptr + 4)
-	meta.ptrMethod, _ = m.Memory().ReadUint32Le(ptr + 8)
-	meta.ptrMsgMax, _ = m.Memory().ReadUint32Le(ptr + 12)
-	meta.ptrMsgLen, _ = m.Memory().ReadUint32Le(ptr + 16)
-	meta.ptrMsg, _ = m.Memory().ReadUint32Le(ptr + 20)
-	meta.ptrErrCode, _ = m.Memory().ReadUint32Le(ptr + 24)
+	for i, v := range []*uint32{
+		&meta.ptrMethodMax,
+		&meta.ptrMethodLen,
+		&meta.ptrMethod,
+		&meta.ptrMsgMax,
+		&meta.ptrMsgLen,
+		&meta.ptrMsg,
+		&meta.ptrErrCode,
+	} {
+		*v = readUint32(m, ptr+uint32(4*i))
+	}
 	return context.WithValue(ctx, p.ctxKeyMeta, meta), nil
 }
 
