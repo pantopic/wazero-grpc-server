@@ -35,10 +35,10 @@ func serverStream(req *pb.ServerStreamRequest) (res iter.Seq[*pb.ServerStreamRes
 	return func(yield func(*pb.ServerStreamResponse) bool) {
 		var n uint64
 		for range req.Foo3 {
-			n++
 			if !yield(&pb.ServerStreamResponse{Bar3: n}) {
 				return
 			}
+			n++
 		}
 	}, nil
 }

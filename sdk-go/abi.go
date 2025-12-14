@@ -7,17 +7,15 @@ import (
 )
 
 var (
+	meta             = make([]uint32, 7)
 	methodCap uint32 = 256
 	methodLen uint32
-	method    = make([]byte, int(methodCap))
-
-	msgCap uint32 = 1.5 * 1024 * 1024
-	msgLen uint32
-	msg    = make([]byte, int(msgCap))
-
-	errCode  uint32
-	meta     = make([]uint32, 7)
-	services = map[string]*Service{}
+	msgCap    uint32 = 1.5 * 1024 * 1024
+	msgLen    uint32
+	errCode   uint32
+	method    = make([]byte, int(methodCap)) // TODO - Make buffers resizable
+	msg       = make([]byte, int(msgCap))
+	services  = map[string]*Service{}
 )
 
 //export __grpcServerInit

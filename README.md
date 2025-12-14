@@ -20,6 +20,8 @@ import (
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"google.golang.org/grpc"
 
+	"github.com/pantopic/wazero-pool"
+
 	"github.com/pantopic/wazero-grpc-server/host"
 )
 
@@ -28,18 +30,22 @@ var wasm []byte
 
 func main() {
 	ctx := context.Background()
-	r := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig())
-	wasi_snapshot_preview1.MustInstantiate(ctx, r)
+	grpcListener, _ := net.Listen(`tcp`, `:8000`)
 
-	module := wazero_grpc_server.New()
-	module.Register(ctx, r)
+	runtime := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig())
+	wasi_snapshot_preview1.MustInstantiate(ctx, runtime)
 
-	mod, _ := r.Instantiate(ctx, wasm)
-	hostModule.RegisterService(ctx, s, mod)
+	hostModule := wazero_grpc_server.New()
+	hostModule.Register(ctx, runtime)
 
-	lis, _ := net.Listen(`tcp`, `:8000`)
-	s := grpc.NewServer()
-	s.Serve(lis)
+	grpcServer := grpc.NewServer()
+
+	pool, err := wazeropool.New(ctx, runtime, wasm)
+	if err != nil {
+		panic(err)
+	}
+	hostModule.RegisterServices(ctx, grpcServer, pool)
+	grpcServer.Serve(grpcListener)
 
 	// ...
 }

@@ -16,31 +16,35 @@ import (
 const Name = "pantopic/wazero-grpc-server"
 
 var (
-	DefaultCtxKeyMeta = `wazero_grpc_server_meta_key`
+	DefaultCtxKeyMeta = `wazero_grpc_server_meta`
 	DefaultCtxKeyNext = `wazero_grpc_next`
+	DefaultCtxKeySend = `wazero_grpc_send`
 )
 
 type meta struct {
-	ptrMethodMax uint32
+	ptrMethodCap uint32
 	ptrMethodLen uint32
-	ptrMsgMax    uint32
-	ptrMsgLen    uint32
-	ptrErrCode   uint32
 	ptrMethod    uint32
+	ptrMsgCap    uint32
+	ptrMsgLen    uint32
 	ptrMsg       uint32
+	ptrErrCode   uint32
 }
 
 type hostModule struct {
 	sync.RWMutex
 
-	module       api.Module
-	ctxKeyMeta   string
-	ctxKeyServer string
+	module     api.Module
+	ctxKeyMeta string
+	ctxKeySend string
+	ctxKeyNext string
 }
 
 func New(opts ...Option) *hostModule {
 	p := &hostModule{
 		ctxKeyMeta: DefaultCtxKeyMeta,
+		ctxKeyNext: DefaultCtxKeyNext,
+		ctxKeySend: DefaultCtxKeySend,
 	}
 	for _, opt := range opts {
 		opt(p)
@@ -59,12 +63,12 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 		builder = builder.NewFunctionBuilder().WithGoModuleFunction(api.GoModuleFunc(fn), nil, nil).Export(name)
 	}
 	for name, fn := range map[string]any{
-		"Recv": func(ctx context.Context) (m []byte, ok bool) {
-			m, ok = <-get[chan []byte](ctx, DefaultCtxKeyNext)
+		"Recv": func(ctx context.Context) (msg []byte, ok bool) {
+			msg, ok = <-get[chan []byte](ctx, p.ctxKeyNext)
 			return
 		},
-		"Send": func(ctx context.Context, m []byte) {
-			// TODO - Sdd server streaming support
+		"Send": func(ctx context.Context, msg []byte, err error) {
+			get[func([]byte, error)](ctx, p.ctxKeySend)(msg, err) // TODO - Replace copy with blocking call
 		},
 	} {
 		switch fn := fn.(type) {
@@ -79,10 +83,10 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 				setErrCode(m, meta, errCodeEmpty)
 				setMsg(m, meta, b)
 			})
-		case func(context.Context, []byte):
+		case func(context.Context, []byte, error):
 			register(name, func(ctx context.Context, m api.Module, stack []uint64) {
 				meta := get[*meta](ctx, p.ctxKeyMeta)
-				fn(ctx, msg(m, meta))
+				fn(ctx, msg(m, meta), getError(m, meta))
 			})
 		default:
 			log.Panicf("Method signature implementation missing: %#v", fn)
@@ -101,10 +105,10 @@ func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Con
 	meta := &meta{}
 	ptr := uint32(stack[0])
 	for i, v := range []*uint32{
-		&meta.ptrMethodMax,
+		&meta.ptrMethodCap,
 		&meta.ptrMethodLen,
 		&meta.ptrMethod,
-		&meta.ptrMsgMax,
+		&meta.ptrMsgCap,
 		&meta.ptrMsgLen,
 		&meta.ptrMsg,
 		&meta.ptrErrCode,
@@ -175,10 +179,6 @@ func get[T any](ctx context.Context, key string) T {
 	return v.(T)
 }
 
-func method(m api.Module, meta *meta) []byte {
-	return read(m, meta.ptrMethod, meta.ptrMethodLen, meta.ptrMethodMax)
-}
-
 func errCode(m api.Module, meta *meta) uint32 {
 	return readUint32(m, meta.ptrErrCode)
 }
@@ -188,7 +188,7 @@ func setErrCode(m api.Module, meta *meta, code uint32) {
 }
 
 func methodBuf(m api.Module, meta *meta) []byte {
-	return read(m, meta.ptrMethod, 0, meta.ptrMethodMax)
+	return read(m, meta.ptrMethod, 0, meta.ptrMethodCap)
 }
 
 func setMethod(m api.Module, meta *meta, method []byte) {
@@ -197,11 +197,11 @@ func setMethod(m api.Module, meta *meta, method []byte) {
 }
 
 func msg(m api.Module, meta *meta) []byte {
-	return read(m, meta.ptrMsg, meta.ptrMsgLen, meta.ptrMsgMax)
+	return read(m, meta.ptrMsg, meta.ptrMsgLen, meta.ptrMsgCap)
 }
 
 func msgBuf(m api.Module, meta *meta) []byte {
-	return read(m, meta.ptrMsg, 0, meta.ptrMsgMax)
+	return read(m, meta.ptrMsg, 0, meta.ptrMsgCap)
 }
 
 func setMsg(m api.Module, meta *meta, msg []byte) {
@@ -216,10 +216,10 @@ func getError(m api.Module, meta *meta) error {
 	return nil
 }
 
-func read(m api.Module, ptrData, ptrLen, ptrMax uint32) (buf []byte) {
-	buf, ok := m.Memory().Read(ptrData, readUint32(m, ptrMax))
+func read(m api.Module, ptr, ptrLen, ptrCap uint32) (buf []byte) {
+	buf, ok := m.Memory().Read(ptr, readUint32(m, ptrCap))
 	if !ok {
-		log.Panicf("Memory.Read(%d, %d) out of range", ptrData, ptrLen)
+		log.Panicf("Memory.Read(%d, %d) out of range", ptr, ptrCap)
 	}
 	return buf[:readUint32(m, ptrLen)]
 }

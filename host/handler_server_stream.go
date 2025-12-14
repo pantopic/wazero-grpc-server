@@ -3,6 +3,7 @@ package wazero_grpc_server
 import (
 	"context"
 	"io"
+	"sync"
 
 	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
@@ -10,8 +11,17 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type msgErr struct {
+	msg []byte
+	err error
+	wg  *sync.WaitGroup
+}
+
 func newHandlerServerStream(ctx context.Context, mod api.Module, meta *meta, method string) grpc.ClientStream {
-	return &handlerServerStream{ctx, mod, meta, method, make(chan bool)}
+	s := &handlerServerStream{ctx, mod, meta, method, make(chan msgErr)}
+	s.ctx = context.WithValue(s.ctx, DefaultCtxKeyMeta, meta)
+	s.ctx = context.WithValue(s.ctx, DefaultCtxKeySend, s.send)
+	return s
 }
 
 type handlerServerStream struct {
@@ -19,7 +29,7 @@ type handlerServerStream struct {
 	mod    api.Module
 	meta   *meta
 	method string
-	ready  chan bool
+	data   chan msgErr
 }
 
 func (cs *handlerServerStream) Header() (md metadata.MD, err error) {
@@ -31,11 +41,19 @@ func (cs *handlerServerStream) Trailer() (md metadata.MD) {
 }
 
 func (cs *handlerServerStream) CloseSend() (err error) {
+	close(cs.data)
 	return
 }
 
 func (cs *handlerServerStream) Context() context.Context {
 	return cs.ctx
+}
+
+func (cs *handlerServerStream) send(msg []byte, err error) {
+	d := msgErr{msg, err, &sync.WaitGroup{}}
+	d.wg.Add(1)
+	cs.data <- d
+	d.wg.Wait()
 }
 
 func (cs *handlerServerStream) SendMsg(m any) (err error) {
@@ -46,23 +64,22 @@ func (cs *handlerServerStream) SendMsg(m any) (err error) {
 	setMethod(cs.mod, cs.meta, []byte(cs.method))
 	setMsg(cs.mod, cs.meta, msg)
 	cs.mod.ExportedFunction("__grpcServerCall").Call(cs.ctx)
-	cs.ready <- true
 	return
 }
 
 func (cs *handlerServerStream) RecvMsg(m any) (err error) {
 	select {
-	case _, ok := <-cs.ready:
+	case d, ok := <-cs.data:
 		if !ok {
 			return io.EOF
 		}
-		if ferr := getError(cs.mod, cs.meta); ferr != nil {
-			ferr.(*Error).msg += `: ` + string(msg(cs.mod, cs.meta))
-			return ferr
+		defer d.wg.Done()
+		if d.err != nil {
+			return &Error{
+				msg: d.err.Error(),
+			}
 		}
-		b := msg(cs.mod, cs.meta)
-		err = proto.Unmarshal(b, m.(proto.Message))
-		close(cs.ready)
+		err = proto.Unmarshal(d.msg, m.(proto.Message))
 	case <-cs.ctx.Done():
 	}
 	return
