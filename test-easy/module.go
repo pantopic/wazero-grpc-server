@@ -11,6 +11,7 @@ func main() {
 	s := grpc_server.NewService(`test.TestService`)
 	s.Unary(`Test`, protoWrap(test, &pb.TestRequest{}))
 	s.Unary(`Retest`, protoWrap(retest, &pb.RetestRequest{}))
+	s.Unary(`TestBytes`, protoWrap(testBytes, &pb.TestBytesRequest{}))
 	s.ClientStream(`ClientStream`, protoWrapClientStream(clientStream, &pb.ClientStreamRequest{}))
 	s.ServerStream(`ServerStream`, protoWrapServerStream(serverStream, &pb.ServerStreamRequest{}))
 }
@@ -21,6 +22,10 @@ func test(req *pb.TestRequest) (res *pb.TestResponse, err error) {
 
 func retest(req *pb.RetestRequest) (res *pb.RetestResponse, err error) {
 	return &pb.RetestResponse{Foo: req.Bar}, nil
+}
+
+func testBytes(req *pb.TestBytesRequest) (res *pb.TestBytesResponse, err error) {
+	return &pb.TestBytesResponse{Code: 1, Data: []byte(`ACK`)}, nil
 }
 
 func clientStream(reqs iter.Seq[*pb.ClientStreamRequest]) (res *pb.ClientStreamResponse, err error) {

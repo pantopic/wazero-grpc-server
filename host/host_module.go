@@ -121,25 +121,29 @@ func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Con
 // ContextCopy populates dst context with the meta page from src context.
 func (h *hostModule) ContextCopy(src, dst context.Context) context.Context {
 	dst = context.WithValue(dst, h.ctxKeyMeta, get[*meta](src, h.ctxKeyMeta))
+	dst = context.WithValue(dst, h.ctxKeyNext, get[chan []byte](src, h.ctxKeyNext))
+	dst = context.WithValue(dst, h.ctxKeySend, get[func([]byte, error)](src, h.ctxKeySend))
 	return dst
 }
 
+type ctxCopyFunc func(context.Context, context.Context) context.Context
+
 // RegisterServices attaches the grpc service(s) to the grpc server
 // Called once before server open, usually given a module instance pool
-func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance) error {
+func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, copy ...ctxCopyFunc) error {
 	mod := pool.Get()
 	defer pool.Put(mod)
 	meta := get[*meta](ctx, p.ctxKeyMeta)
 	// Format: msg = "/package1.ServiceName/u.method1,u.method2,c.method3/service2.ServiceName/u.method1,s.method2"
 	parts := strings.Split(string(msg(mod, meta)), "/")
 	for i := 1; i+2 <= len(parts); i += 2 {
-		p.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","))
+		p.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","), ctx, copy...)
 	}
 	return nil
 }
 
-func (p *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string) {
-	h := &grpcHandler{pool, meta}
+func (p *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string, ctx context.Context, copy ...ctxCopyFunc) {
+	h := &grpcHandler{pool, meta, ctx, copy}
 	fakeDesc := &grpc.ServiceDesc{
 		ServiceName: serviceName,
 		HandlerType: (*any)(nil),

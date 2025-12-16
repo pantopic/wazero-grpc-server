@@ -18,6 +18,8 @@ import (
 type grpcHandler struct {
 	pool wazeropool.Instance
 	meta *meta
+	ctx  context.Context
+	init []ctxCopyFunc
 }
 
 func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.ServerStream) error {
@@ -28,6 +30,9 @@ func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.
 		}
 		ctx, cancel := context.WithCancel(serverStream.Context())
 		defer cancel()
+		for _, f := range h.init {
+			ctx = f(h.ctx, ctx)
+		}
 		mod := h.pool.Get()
 		defer h.pool.Put(mod)
 		clientStream := f(ctx, mod, h.meta, fullMethodName)

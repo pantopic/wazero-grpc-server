@@ -130,6 +130,74 @@ func (tr *RetestResponse) Unmarshal(src []byte) (err error) {
 	return nil
 }
 
+type TestBytesRequest struct {
+	Key []byte
+	Val []byte
+}
+
+func (tr *TestBytesRequest) Marshal(dst []byte) []byte {
+	m := mp.Get()
+	tr.marshal(m.MessageMarshaler())
+	dst = m.Marshal(dst)
+	mp.Put(m)
+	return dst
+}
+
+func (tr *TestBytesRequest) marshal(mm *easyproto.MessageMarshaler) {
+	mm.AppendBytes(1, tr.Key)
+	mm.AppendBytes(2, tr.Val)
+}
+
+func (tr *TestBytesRequest) Unmarshal(src []byte) (err error) {
+	tr.Key = tr.Key[:0]
+	tr.Val = tr.Val[:0]
+	var fc easyproto.FieldContext
+	for len(src) > 0 {
+		src, _ = fc.NextField(src)
+		switch fc.FieldNum {
+		case 1:
+			tr.Key, _ = fc.Bytes()
+		case 2:
+			tr.Val, _ = fc.Bytes()
+		}
+	}
+	return nil
+}
+
+type TestBytesResponse struct {
+	Code uint64
+	Data []byte
+}
+
+func (tr *TestBytesResponse) Marshal(dst []byte) []byte {
+	m := mp.Get()
+	tr.marshal(m.MessageMarshaler())
+	dst = m.Marshal(dst)
+	mp.Put(m)
+	return dst
+}
+
+func (tr *TestBytesResponse) marshal(mm *easyproto.MessageMarshaler) {
+	mm.AppendUint64(1, tr.Code)
+	mm.AppendBytes(2, tr.Data)
+}
+
+func (tr *TestBytesResponse) Unmarshal(src []byte) (err error) {
+	tr.Code = 0
+	tr.Data = tr.Data[:0]
+	var fc easyproto.FieldContext
+	for len(src) > 0 {
+		src, _ = fc.NextField(src)
+		switch fc.FieldNum {
+		case 1:
+			tr.Code, _ = fc.Uint64()
+		case 2:
+			tr.Data, _ = fc.Bytes()
+		}
+	}
+	return nil
+}
+
 type ClientStreamRequest struct {
 	Foo2 uint64
 }

@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	TestService_Test_FullMethodName                = "/test.TestService/Test"
 	TestService_Retest_FullMethodName              = "/test.TestService/Retest"
+	TestService_TestBytes_FullMethodName           = "/test.TestService/TestBytes"
 	TestService_ClientStream_FullMethodName        = "/test.TestService/ClientStream"
 	TestService_ServerStream_FullMethodName        = "/test.TestService/ServerStream"
 	TestService_BidirectionalStream_FullMethodName = "/test.TestService/BidirectionalStream"
@@ -32,6 +33,7 @@ const (
 type TestServiceClient interface {
 	Test(ctx context.Context, in *TestRequest, opts ...grpc.CallOption) (*TestResponse, error)
 	Retest(ctx context.Context, in *RetestRequest, opts ...grpc.CallOption) (*RetestResponse, error)
+	TestBytes(ctx context.Context, in *TestBytesRequest, opts ...grpc.CallOption) (*TestBytesResponse, error)
 	ClientStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ClientStreamRequest, ClientStreamResponse], error)
 	ServerStream(ctx context.Context, in *ServerStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ServerStreamResponse], error)
 	BidirectionalStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[BidirectionalStreamRequest, BidirectionalStreamResponse], error)
@@ -59,6 +61,16 @@ func (c *testServiceClient) Retest(ctx context.Context, in *RetestRequest, opts 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RetestResponse)
 	err := c.cc.Invoke(ctx, TestService_Retest_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *testServiceClient) TestBytes(ctx context.Context, in *TestBytesRequest, opts ...grpc.CallOption) (*TestBytesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TestBytesResponse)
+	err := c.cc.Invoke(ctx, TestService_TestBytes_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +128,7 @@ type TestService_BidirectionalStreamClient = grpc.BidiStreamingClient[Bidirectio
 type TestServiceServer interface {
 	Test(context.Context, *TestRequest) (*TestResponse, error)
 	Retest(context.Context, *RetestRequest) (*RetestResponse, error)
+	TestBytes(context.Context, *TestBytesRequest) (*TestBytesResponse, error)
 	ClientStream(grpc.ClientStreamingServer[ClientStreamRequest, ClientStreamResponse]) error
 	ServerStream(*ServerStreamRequest, grpc.ServerStreamingServer[ServerStreamResponse]) error
 	BidirectionalStream(grpc.BidiStreamingServer[BidirectionalStreamRequest, BidirectionalStreamResponse]) error
@@ -134,6 +147,9 @@ func (UnimplementedTestServiceServer) Test(context.Context, *TestRequest) (*Test
 }
 func (UnimplementedTestServiceServer) Retest(context.Context, *RetestRequest) (*RetestResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Retest not implemented")
+}
+func (UnimplementedTestServiceServer) TestBytes(context.Context, *TestBytesRequest) (*TestBytesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TestBytes not implemented")
 }
 func (UnimplementedTestServiceServer) ClientStream(grpc.ClientStreamingServer[ClientStreamRequest, ClientStreamResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method ClientStream not implemented")
@@ -201,6 +217,24 @@ func _TestService_Retest_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TestService_TestBytes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestBytesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TestServiceServer).TestBytes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TestService_TestBytes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TestServiceServer).TestBytes(ctx, req.(*TestBytesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _TestService_ClientStream_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(TestServiceServer).ClientStream(&grpc.GenericServerStream[ClientStreamRequest, ClientStreamResponse]{ServerStream: stream})
 }
@@ -240,6 +274,10 @@ var TestService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Retest",
 			Handler:    _TestService_Retest_Handler,
+		},
+		{
+			MethodName: "TestBytes",
+			Handler:    _TestService_TestBytes_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

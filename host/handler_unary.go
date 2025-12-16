@@ -45,7 +45,9 @@ func (cs *handlerUnary) SendMsg(m any) (err error) {
 	}
 	setMethod(cs.mod, cs.meta, []byte(cs.method))
 	setMsg(cs.mod, cs.meta, msg)
-	cs.mod.ExportedFunction("__grpcServerCall").Call(cs.ctx)
+	if _, err = cs.mod.ExportedFunction("__grpcServerCall").Call(cs.ctx); err != nil {
+		return
+	}
 	cs.ready <- true
 	return
 }
@@ -60,8 +62,7 @@ func (cs *handlerUnary) RecvMsg(m any) (err error) {
 			ferr.(*Error).msg += `: ` + string(msg(cs.mod, cs.meta))
 			return ferr
 		}
-		b := msg(cs.mod, cs.meta)
-		err = proto.Unmarshal(b, m.(proto.Message))
+		err = proto.Unmarshal(msg(cs.mod, cs.meta), m.(proto.Message))
 		close(cs.ready)
 	case <-cs.ctx.Done():
 	}
