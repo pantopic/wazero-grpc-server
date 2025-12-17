@@ -4,6 +4,8 @@ import (
 	"iter"
 
 	"github.com/pantopic/wazero-grpc-server/sdk-go"
+	"github.com/pantopic/wazero-grpc-server/sdk-go/codes"
+	"github.com/pantopic/wazero-grpc-server/sdk-go/status"
 	"github.com/pantopic/wazero-grpc-server/test-easy/pb"
 )
 
@@ -52,11 +54,11 @@ func protoWrap[ReqType pb.Message, ResType pb.Message](fn func(ReqType) (ResType
 	return func(in []byte) (out []byte, err error) {
 		err = req.Unmarshal(in)
 		if err != nil {
-			return []byte(err.Error()), grpc_server.ErrMalformed
+			return []byte(err.Error()), status.New(codes.InvalidArgument, err.Error()).Err()
 		}
 		res, err := fn(req)
 		if err != nil {
-			return []byte(err.Error()), grpc_server.ErrUnexpected
+			return []byte(err.Error()), status.New(codes.Unknown, err.Error()).Err()
 		}
 		out = res.Marshal(out)
 		return
@@ -71,7 +73,7 @@ func protoWrapClientStream[ReqType pb.Message, ResType pb.Message](fn func(iter.
 				err2 = req.Unmarshal(b)
 				if err2 != nil {
 					out = []byte(err.Error())
-					err2 = grpc_server.ErrMalformed
+					err2 = status.New(codes.InvalidArgument, err.Error()).Err()
 					return
 				}
 				if !yield(req) {
@@ -91,11 +93,11 @@ func protoWrapServerStream[ReqType pb.Message, ResType pb.Message](fn func(ReqTy
 	return func(in []byte) (out iter.Seq[[]byte], err error) {
 		err = req.Unmarshal(in)
 		if err != nil {
-			return nil, grpc_server.ErrMalformed
+			return nil, status.New(codes.InvalidArgument, err.Error()).Err()
 		}
 		all, err := fn(req)
 		if err != nil {
-			return nil, grpc_server.ErrUnexpected
+			return nil, status.New(codes.Unknown, err.Error()).Err()
 		}
 		return func(yield func([]byte) bool) {
 			for res := range all {

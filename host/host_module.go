@@ -9,6 +9,8 @@ import (
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/pantopic/wazero-pool"
 )
@@ -77,10 +79,10 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 				meta := get[*meta](ctx, p.ctxKeyMeta)
 				b, ok := fn(ctx)
 				if !ok {
-					setErrCode(m, meta, errCodeDone)
+					setErrCode(m, meta, uint32(codes.Canceled))
 					return
 				}
-				setErrCode(m, meta, errCodeEmpty)
+				setErrCode(m, meta, uint32(codes.OK))
 				setMsg(m, meta, b)
 			})
 		case func(context.Context, []byte, error):
@@ -214,8 +216,9 @@ func setMsg(m api.Module, meta *meta, msg []byte) {
 }
 
 func getError(m api.Module, meta *meta) error {
-	if err, ok := errorsByCode[errCode(m, meta)]; ok {
-		return err
+	i := errCode(m, meta)
+	if i > 0 {
+		return status.New(codes.Code(i), string(msg(m, meta))).Err()
 	}
 	return nil
 }

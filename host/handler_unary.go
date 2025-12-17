@@ -58,9 +58,8 @@ func (cs *handlerUnary) RecvMsg(m any) (err error) {
 		if !ok {
 			return io.EOF
 		}
-		if ferr := getError(cs.mod, cs.meta); ferr != nil {
-			ferr.(*Error).msg += `: ` + string(msg(cs.mod, cs.meta))
-			return ferr
+		if err = getError(cs.mod, cs.meta); err != nil {
+			return
 		}
 		err = proto.Unmarshal(msg(cs.mod, cs.meta), m.(proto.Message))
 		close(cs.ready)

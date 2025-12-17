@@ -4,6 +4,8 @@ import (
 	"sort"
 	"strings"
 	"unsafe"
+
+	"github.com/pantopic/wazero-grpc-server/sdk-go/codes"
 )
 
 var (
@@ -71,38 +73,39 @@ func __grpcServerCall() {
 	m := string(getMethod())
 	parts := strings.Split(m, "/")
 	if len(parts) != 3 {
-		errCode = errCodeInvalid
+		errCode = uint32(codes.InvalidArgument)
 		setMsg([]byte(`Invalid method: ` + m))
 		return
 	}
 	service, ok := services[parts[1]]
 	if !ok {
-		errCode = errCodeNotImplemented
+		errCode = uint32(codes.Unimplemented)
 		return
 	}
 	h, ok := service.handlers[parts[2]]
 	if !ok {
-		errCode = errCodeNotImplemented
+		errCode = uint32(codes.Unimplemented)
 		return
 	}
 	switch h := h.(type) {
 	case handler:
 		b, err := h(getMsg())
 		if err != nil {
-			if err, ok := err.(Error); ok {
-				errCode = err.code
+			if err2, ok := err.(Error); ok {
+				errCode = uint32(err2.Code())
+				setMsg([]byte(err2.Message()))
 			} else {
-				errCode = errCodeUnknown
+				errCode = uint32(codes.Unknown)
+				setMsg([]byte(err.Error()))
 			}
-			setMsg([]byte(err.Error()))
 			return
 		}
-		errCode = errCodeEmpty
+		errCode = uint32(codes.OK)
 		setMsg(b)
 	case clientStream:
 		b, err := h(func(yield func([]byte) bool) {
 			for {
-				if errCode != errCodeEmpty {
+				if errCode != uint32(codes.OK) {
 					return
 				}
 				m := getMsg()
@@ -114,36 +117,44 @@ func __grpcServerCall() {
 		})
 		if err != nil {
 			if err, ok := err.(Error); ok {
-				errCode = err.code
+				errCode = uint32(err.Code())
 			} else {
-				errCode = errCodeUnknown
+				errCode = uint32(codes.Unknown)
 			}
 			setMsg([]byte(err.Error()))
 			return
 		}
-		errCode = errCodeEmpty
+		errCode = uint32(codes.OK)
 		setMsg(b)
 	case serverStream:
 		all, err := h(getMsg())
 		if err != nil {
 			if err, ok := err.(Error); ok {
-				errCode = err.code
+				errCode = uint32(err.Code())
 			} else {
-				errCode = errCodeUnknown
+				errCode = uint32(codes.Unknown)
 			}
 			setMsg([]byte(err.Error()))
 			return
 		}
-		errCode = errCodeEmpty
+		errCode = uint32(codes.OK)
 		for m := range all {
 			setMsg(m)
 			grpcSend()
 		}
 	case bidirectionalStream:
-		errCode = errCodeNotImplemented
+		errCode = uint32(codes.Unimplemented)
 		return
 	}
 }
+
+//go:wasm-module pantopic/wazero-grpc-server
+//export Recv
+func grpcRecv()
+
+//go:wasm-module pantopic/wazero-grpc-server
+//export Send
+func grpcSend()
 
 // Fix for lint rule `unusedfunc`
 var _ = __grpcServerInit

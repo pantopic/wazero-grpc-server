@@ -7,6 +7,7 @@ import (
 
 	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
@@ -55,7 +56,7 @@ func (cs *handlerClientStream) SendMsg(m any) (err error) {
 		// Special case for first message
 		setMethod(cs.mod, cs.meta, []byte(cs.method))
 		setMsg(cs.mod, cs.meta, msg)
-		setErrCode(cs.mod, cs.meta, errCodeEmpty)
+		setErrCode(cs.mod, cs.meta, uint32(codes.OK))
 		go func() {
 			_, err := cs.mod.ExportedFunction("__grpcServerCall").Call(cs.ctx)
 			if err != nil {

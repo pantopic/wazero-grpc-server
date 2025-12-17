@@ -6,6 +6,8 @@ import (
 	proto "github.com/aperturerobotics/protobuf-go-lite"
 
 	"github.com/pantopic/wazero-grpc-server/sdk-go"
+	"github.com/pantopic/wazero-grpc-server/sdk-go/codes"
+	"github.com/pantopic/wazero-grpc-server/sdk-go/status"
 	"github.com/pantopic/wazero-grpc-server/test-lite/pb"
 )
 
@@ -54,15 +56,15 @@ func protoWrap[ReqType proto.Message, ResType proto.Message](fn func(ReqType) (R
 	return func(in []byte) (out []byte, err error) {
 		err = req.UnmarshalVT(in)
 		if err != nil {
-			return []byte(err.Error()), grpc_server.ErrMalformed
+			return []byte(err.Error()), status.New(codes.InvalidArgument, err.Error()).Err()
 		}
 		res, err := fn(req)
 		if err != nil {
-			return []byte(err.Error()), grpc_server.ErrUnexpected
+			return []byte(err.Error()), status.New(codes.Unknown, err.Error()).Err()
 		}
 		out, err = res.MarshalVT()
 		if err != nil {
-			return []byte(err.Error()), grpc_server.ErrMarshal
+			return []byte(err.Error()), status.New(codes.InvalidArgument, err.Error()).Err()
 		}
 		return
 	}
@@ -76,7 +78,7 @@ func protoWrapClientStream[ReqType proto.Message, ResType proto.Message](fn func
 				err2 = req.UnmarshalVT(b)
 				if err2 != nil {
 					out = []byte(err.Error())
-					err2 = grpc_server.ErrMalformed
+					err2 = status.New(codes.InvalidArgument, err.Error()).Err()
 					return
 				}
 				if !yield(req) {
@@ -90,7 +92,7 @@ func protoWrapClientStream[ReqType proto.Message, ResType proto.Message](fn func
 		}
 		out, err = res.MarshalVT()
 		if err != nil {
-			return []byte(err.Error()), grpc_server.ErrMarshal
+			return []byte(err.Error()), status.New(codes.InvalidArgument, err.Error()).Err()
 		}
 		return
 	}
@@ -100,17 +102,17 @@ func protoWrapServerStream[ReqType proto.Message, ResType proto.Message](fn func
 	return func(in []byte) (out iter.Seq[[]byte], err error) {
 		err = req.UnmarshalVT(in)
 		if err != nil {
-			return nil, grpc_server.ErrMalformed
+			return nil, status.New(codes.InvalidArgument, err.Error()).Err()
 		}
 		all, err := fn(req)
 		if err != nil {
-			return nil, grpc_server.ErrUnexpected
+			return nil, status.New(codes.Unknown, err.Error()).Err()
 		}
 		return func(yield func([]byte) bool) {
 			for res := range all {
 				out, err2 := res.MarshalVT()
 				if err2 != nil {
-					err2 = grpc_server.ErrMarshal
+					err2 = status.New(codes.InvalidArgument, err.Error()).Err()
 					return
 				}
 				if !yield(out) {
