@@ -6,64 +6,80 @@ import (
 
 	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/pantopic/wazero-pool"
 )
 
-func newHandlerUnary(ctx context.Context, mod api.Module, meta *meta, method string) grpc.ClientStream {
-	return &handlerUnary{ctx, mod, meta, method, make(chan bool)}
+func newHandlerUnary(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
+	return &handlerUnary{ctx, pool, meta, method, make(chan resp, 10)}
 }
 
 type handlerUnary struct {
 	ctx    context.Context
-	mod    api.Module
+	pool   wazeropool.Instance
 	meta   *meta
 	method string
-	ready  chan bool
+	send   chan resp
 }
 
-func (cs *handlerUnary) Header() (md metadata.MD, err error) {
+type resp struct {
+	data []byte
+	err  error
+}
+
+func (h *handlerUnary) Header() (md metadata.MD, err error) {
 	return
 }
 
-func (cs *handlerUnary) Trailer() (md metadata.MD) {
+func (h *handlerUnary) Trailer() (md metadata.MD) {
 	return
 }
 
-func (cs *handlerUnary) CloseSend() (err error) {
+func (h *handlerUnary) CloseSend() (err error) {
 	return
 }
 
-func (cs *handlerUnary) Context() context.Context {
-	return cs.ctx
+func (h *handlerUnary) Context() context.Context {
+	return h.ctx
 }
 
-func (cs *handlerUnary) SendMsg(m any) (err error) {
-	msg, err := proto.Marshal(m.(proto.Message))
+func (h *handlerUnary) SendMsg(m any) (err error) {
+	data, err := proto.Marshal(m.(proto.Message))
 	if err != nil {
 		panic(err)
 	}
-	setMethod(cs.mod, cs.meta, []byte(cs.method))
-	setMsg(cs.mod, cs.meta, msg)
-	if _, err = cs.mod.ExportedFunction("__grpcServerCall").Call(cs.ctx); err != nil {
-		return
-	}
-	cs.ready <- true
+	var r resp
+	h.pool.Run(func(mod api.Module) {
+		setMethod(mod, h.meta, []byte(h.method))
+		setMsg(mod, h.meta, data)
+		setErrCode(mod, h.meta, codes.OK)
+		if _, err = mod.ExportedFunction("__grpc_server_call").Call(h.ctx); err != nil {
+			return
+		}
+		r.err = getError(mod, h.meta)
+		if r.err == nil {
+			r.data = append(r.data, getMsg(mod, h.meta)...)
+		}
+	})
+	h.send <- r
 	return
 }
 
-func (cs *handlerUnary) RecvMsg(m any) (err error) {
+func (h *handlerUnary) RecvMsg(m any) (err error) {
 	select {
-	case _, ok := <-cs.ready:
+	case resp, ok := <-h.send:
 		if !ok {
 			return io.EOF
 		}
-		if err = getError(cs.mod, cs.meta); err != nil {
-			return
+		close(h.send)
+		if resp.err != nil {
+			return resp.err
 		}
-		err = proto.Unmarshal(msg(cs.mod, cs.meta), m.(proto.Message))
-		close(cs.ready)
-	case <-cs.ctx.Done():
+		err = proto.Unmarshal(resp.data, m.(proto.Message))
+	case <-h.ctx.Done():
 	}
 	return
 }

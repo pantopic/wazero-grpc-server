@@ -10,80 +10,87 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/pantopic/wazero-pool"
 )
 
-func newHandlerClientStream(ctx context.Context, mod api.Module, meta *meta, method string) grpc.ClientStream {
+func newHandlerClientStream(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
 	next := make(chan []byte)
 	ctx = context.WithValue(ctx, DefaultCtxKeyMeta, meta)
 	ctx = context.WithValue(ctx, DefaultCtxKeyNext, next)
-	return &handlerClientStream{ctx, mod, meta, method, next, make(chan bool), false}
+	return &handlerClientStream{ctx, pool, meta, method, make(chan resp), next, false}
 }
 
 type handlerClientStream struct {
 	ctx    context.Context
-	mod    api.Module
+	pool   wazeropool.Instance
 	meta   *meta
 	method string
+	send   chan resp
 	next   chan []byte
-	done   chan bool
 	init   bool
 }
 
-func (cs *handlerClientStream) Header() (md metadata.MD, err error) {
+func (h *handlerClientStream) Header() (md metadata.MD, err error) {
 	return
 }
 
-func (cs *handlerClientStream) Trailer() (md metadata.MD) {
+func (h *handlerClientStream) Trailer() (md metadata.MD) {
 	return
 }
 
-func (cs *handlerClientStream) CloseSend() (err error) {
-	close(cs.next)
+func (h *handlerClientStream) CloseSend() (err error) {
+	close(h.next)
 	return
 }
 
-func (cs *handlerClientStream) Context() context.Context {
-	return cs.ctx
+func (h *handlerClientStream) Context() context.Context {
+	return h.ctx
 }
 
-func (cs *handlerClientStream) SendMsg(m any) (err error) {
+func (h *handlerClientStream) SendMsg(m any) (err error) {
 	msg, err := proto.Marshal(m.(proto.Message))
 	if err != nil {
 		panic(err)
 	}
-	if !cs.init {
-		cs.init = true
-		// Special case for first message
-		setMethod(cs.mod, cs.meta, []byte(cs.method))
-		setMsg(cs.mod, cs.meta, msg)
-		setErrCode(cs.mod, cs.meta, uint32(codes.OK))
+	if !h.init {
+		h.init = true
 		go func() {
-			_, err := cs.mod.ExportedFunction("__grpcServerCall").Call(cs.ctx)
-			if err != nil {
-				log.Println(err)
-			}
-			cs.done <- true
+			var r resp
+			h.pool.Run(func(mod api.Module) {
+				// Special case for first message
+				setMethod(mod, h.meta, []byte(h.method))
+				setMsg(mod, h.meta, msg)
+				setErrCode(mod, h.meta, codes.OK)
+				_, err := mod.ExportedFunction("__grpc_server_call").Call(h.ctx)
+				if err != nil {
+					log.Println(err)
+				}
+				r.err = getError(mod, h.meta)
+				if r.err == nil {
+					r.data = append(r.data, getMsg(mod, h.meta)...)
+				}
+			})
+			h.send <- r
 		}()
 	} else {
-		cs.next <- msg
+		h.next <- msg
 	}
 	return
 }
 
-func (cs *handlerClientStream) RecvMsg(m any) (err error) {
+func (h *handlerClientStream) RecvMsg(m any) (err error) {
 	select {
-	case _, ok := <-cs.done:
+	case r, ok := <-h.send:
 		if !ok {
 			return io.EOF
 		}
-		if ferr := getError(cs.mod, cs.meta); ferr != nil {
-			ferr.(*Error).msg += `: ` + string(msg(cs.mod, cs.meta))
-			return ferr
+		close(h.send)
+		if r.err != nil {
+			return r.err
 		}
-		b := msg(cs.mod, cs.meta)
-		err = proto.Unmarshal(b, m.(proto.Message))
-		close(cs.done)
-	case <-cs.ctx.Done():
+		err = proto.Unmarshal(r.data, m.(proto.Message))
+	case <-h.ctx.Done():
 	}
 	return
 }

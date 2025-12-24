@@ -3,8 +3,9 @@ package wazero_grpc_server
 import (
 	"context"
 
-	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
+
+	"github.com/pantopic/wazero-pool"
 )
 
-type handlerFactory func(context.Context, api.Module, *meta, string) grpc.ClientStream
+type handlerFactory func(context.Context, wazeropool.Instance, *meta, string) grpc.ClientStream

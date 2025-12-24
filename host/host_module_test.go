@@ -36,8 +36,7 @@ func TestHostModule(t *testing.T) {
 		ctx = context.Background()
 		out = &bytes.Buffer{}
 	)
-	r := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
-		WithMemoryLimitPages(64)) // 4 MB
+	r := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig())
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 
 	var hostModule *hostModule
@@ -191,8 +190,7 @@ func TestHostModule(t *testing.T) {
 func BenchmarkHostModule(b *testing.B) {
 	var ctx = context.Background()
 	var out = &bytes.Buffer{}
-	r := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig().
-		WithMemoryLimitPages(64)) // 4 MB
+	r := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig())
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 	hostModule := New()
 	hostModule.Register(ctx, r)

@@ -14,14 +14,14 @@ var (
 	methodLen uint32
 	msgCap    uint32 = 1.5 * 1024 * 1024
 	msgLen    uint32
-	errCode   uint32
-	method    = make([]byte, int(methodCap)) // TODO - Make buffers resizable
+	errCode   codes.Code
+	method    = make([]byte, int(methodCap))
 	msg       = make([]byte, int(msgCap))
 	services  = map[string]*Service{}
 )
 
-//export __grpcServerInit
-func __grpcServerInit() (res uint32) {
+//export __grpc_server
+func __grpc_server() (res uint32) {
 	meta[0] = uint32(uintptr(unsafe.Pointer(&methodCap)))
 	meta[1] = uint32(uintptr(unsafe.Pointer(&methodLen)))
 	meta[2] = uint32(uintptr(unsafe.Pointer(&method[0])))
@@ -40,7 +40,7 @@ func __grpcServerInit() (res uint32) {
 		var methods []string
 		for k, h := range services[name].handlers {
 			switch h.(type) {
-			case handler:
+			case unary:
 				methods = append(methods, `u.`+k)
 			case clientStream:
 				methods = append(methods, `c.`+k)
@@ -68,44 +68,52 @@ func getMethod() []byte {
 	return method[:methodLen]
 }
 
-//export __grpcServerCall
-func __grpcServerCall() {
+func getHandler() (h any, errCode codes.Code) {
 	m := string(getMethod())
 	parts := strings.Split(m, "/")
 	if len(parts) != 3 {
-		errCode = uint32(codes.InvalidArgument)
+		errCode = codes.InvalidArgument
 		setMsg([]byte(`Invalid method: ` + m))
 		return
 	}
 	service, ok := services[parts[1]]
 	if !ok {
-		errCode = uint32(codes.Unimplemented)
+		errCode = codes.Unimplemented
 		return
 	}
-	h, ok := service.handlers[parts[2]]
+	h, ok = service.handlers[parts[2]]
 	if !ok {
-		errCode = uint32(codes.Unimplemented)
+		errCode = codes.Unimplemented
+		return
+	}
+	return
+}
+
+//export __grpc_server_call
+func __grpc_server_call() {
+	h, err := getHandler()
+	if err > 0 {
 		return
 	}
 	switch h := h.(type) {
-	case handler:
+	case unary:
 		b, err := h(getMsg())
 		if err != nil {
 			if err2, ok := err.(Error); ok {
-				errCode = uint32(err2.Code())
+				errCode = err2.Code()
 				setMsg([]byte(err2.Message()))
 			} else {
-				errCode = uint32(codes.Unknown)
+				errCode = codes.Unknown
 				setMsg([]byte(err.Error()))
 			}
 			return
 		}
-		errCode = uint32(codes.OK)
+		errCode = codes.OK
 		setMsg(b)
 	case clientStream:
 		b, err := h(func(yield func([]byte) bool) {
 			for {
-				if errCode != uint32(codes.OK) {
+				if errCode != codes.OK {
 					return
 				}
 				m := getMsg()
@@ -117,45 +125,45 @@ func __grpcServerCall() {
 		})
 		if err != nil {
 			if err, ok := err.(Error); ok {
-				errCode = uint32(err.Code())
+				errCode = err.Code()
 			} else {
-				errCode = uint32(codes.Unknown)
+				errCode = codes.Unknown
 			}
 			setMsg([]byte(err.Error()))
 			return
 		}
-		errCode = uint32(codes.OK)
+		errCode = codes.OK
 		setMsg(b)
 	case serverStream:
 		all, err := h(getMsg())
 		if err != nil {
 			if err, ok := err.(Error); ok {
-				errCode = uint32(err.Code())
+				errCode = err.Code()
 			} else {
-				errCode = uint32(codes.Unknown)
+				errCode = codes.Unknown
 			}
 			setMsg([]byte(err.Error()))
 			return
 		}
-		errCode = uint32(codes.OK)
+		errCode = codes.OK
 		for m := range all {
 			setMsg(m)
 			grpcSend()
 		}
 	case bidirectionalStream:
-		errCode = uint32(codes.Unimplemented)
+		errCode = codes.Unimplemented
 		return
 	}
 }
 
 //go:wasm-module pantopic/wazero-grpc-server
-//export Recv
-func grpcRecv()
-
-//go:wasm-module pantopic/wazero-grpc-server
 //export Send
 func grpcSend()
 
+//go:wasm-module pantopic/wazero-grpc-server
+//export Recv
+func grpcRecv()
+
 // Fix for lint rule `unusedfunc`
-var _ = __grpcServerInit
-var _ = __grpcServerCall
+var _ = __grpc_server
+var _ = __grpc_server_call

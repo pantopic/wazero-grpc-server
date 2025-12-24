@@ -18,9 +18,10 @@ import (
 const Name = "pantopic/wazero-grpc-server"
 
 var (
-	DefaultCtxKeyMeta = `wazero_grpc_server_meta`
-	DefaultCtxKeyNext = `wazero_grpc_next`
-	DefaultCtxKeySend = `wazero_grpc_send`
+	DefaultCtxKeyMeta  = `wazero_grpc_server_meta`
+	DefaultCtxKeyNext  = `wazero_grpc_next`
+	DefaultCtxKeySend  = `wazero_grpc_send`
+	DefaultCtxKeyClose = `wazero_grpc_close`
 )
 
 type meta struct {
@@ -38,8 +39,8 @@ type hostModule struct {
 
 	module     api.Module
 	ctxKeyMeta string
-	ctxKeySend string
 	ctxKeyNext string
+	ctxKeySend string
 }
 
 func New(opts ...Option) *hostModule {
@@ -79,16 +80,16 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 				meta := get[*meta](ctx, p.ctxKeyMeta)
 				b, ok := fn(ctx)
 				if !ok {
-					setErrCode(m, meta, uint32(codes.Canceled))
+					setErrCode(m, meta, codes.Canceled)
 					return
 				}
-				setErrCode(m, meta, uint32(codes.OK))
+				setErrCode(m, meta, codes.OK)
 				setMsg(m, meta, b)
 			})
 		case func(context.Context, []byte, error):
 			register(name, func(ctx context.Context, m api.Module, stack []uint64) {
 				meta := get[*meta](ctx, p.ctxKeyMeta)
-				fn(ctx, msg(m, meta), getError(m, meta))
+				fn(ctx, getMsg(m, meta), getError(m, meta))
 			})
 		default:
 			log.Panicf("Method signature implementation missing: %#v", fn)
@@ -100,7 +101,7 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 
 // InitContext retrieves the meta page from the wasm module
 func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Context, error) {
-	stack, err := m.ExportedFunction(`__grpcServerInit`).Call(ctx)
+	stack, err := m.ExportedFunction(`__grpc_server`).Call(ctx)
 	if err != nil {
 		return ctx, err
 	}
@@ -137,7 +138,7 @@ func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool 
 	defer pool.Put(mod)
 	meta := get[*meta](ctx, p.ctxKeyMeta)
 	// Format: msg = "/package1.ServiceName/u.method1,u.method2,c.method3/service2.ServiceName/u.method1,s.method2"
-	parts := strings.Split(string(msg(mod, meta)), "/")
+	parts := strings.Split(string(getMsg(mod, meta)), "/")
 	for i := 1; i+2 <= len(parts); i += 2 {
 		p.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","), ctx, copy...)
 	}
@@ -185,11 +186,11 @@ func get[T any](ctx context.Context, key string) T {
 	return v.(T)
 }
 
-func errCode(m api.Module, meta *meta) uint32 {
-	return readUint32(m, meta.ptrErrCode)
+func getErrCode(m api.Module, meta *meta) codes.Code {
+	return codes.Code(readUint32(m, meta.ptrErrCode))
 }
 
-func setErrCode(m api.Module, meta *meta, code uint32) {
+func setErrCode(m api.Module, meta *meta, code codes.Code) {
 	writeUint32(m, meta.ptrErrCode, uint32(code))
 }
 
@@ -202,7 +203,7 @@ func setMethod(m api.Module, meta *meta, method []byte) {
 	writeUint32(m, meta.ptrMethodLen, uint32(len(method)))
 }
 
-func msg(m api.Module, meta *meta) []byte {
+func getMsg(m api.Module, meta *meta) []byte {
 	return read(m, meta.ptrMsg, meta.ptrMsgLen, meta.ptrMsgCap)
 }
 
@@ -216,9 +217,9 @@ func setMsg(m api.Module, meta *meta, msg []byte) {
 }
 
 func getError(m api.Module, meta *meta) error {
-	i := errCode(m, meta)
-	if i > 0 {
-		return status.New(codes.Code(i), string(msg(m, meta))).Err()
+	c := getErrCode(m, meta)
+	if c != codes.OK {
+		return status.New(c, string(getMsg(m, meta))).Err()
 	}
 	return nil
 }

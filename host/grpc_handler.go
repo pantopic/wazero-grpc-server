@@ -33,9 +33,7 @@ func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.
 		for _, f := range h.init {
 			ctx = f(h.ctx, ctx)
 		}
-		mod := h.pool.Get()
-		defer h.pool.Put(mod)
-		clientStream := f(ctx, mod, h.meta, fullMethodName)
+		clientStream := f(ctx, h.pool, h.meta, fullMethodName)
 		s2cErrChan := h.forwardServerToWazero(serverStream, clientStream)
 		c2sErrChan := h.forwardWazeroToServer(clientStream, serverStream)
 		for range 2 {

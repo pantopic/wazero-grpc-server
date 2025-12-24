@@ -9,6 +9,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/pantopic/wazero-pool"
 )
 
 type msgErr struct {
@@ -17,8 +19,8 @@ type msgErr struct {
 	wg  *sync.WaitGroup
 }
 
-func newHandlerServerStream(ctx context.Context, mod api.Module, meta *meta, method string) grpc.ClientStream {
-	s := &handlerServerStream{ctx, mod, meta, method, make(chan msgErr)}
+func newHandlerServerStream(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
+	s := &handlerServerStream{ctx, pool, meta, method, make(chan msgErr)}
 	s.ctx = context.WithValue(s.ctx, DefaultCtxKeyMeta, meta)
 	s.ctx = context.WithValue(s.ctx, DefaultCtxKeySend, s.send)
 	return s
@@ -26,50 +28,52 @@ func newHandlerServerStream(ctx context.Context, mod api.Module, meta *meta, met
 
 type handlerServerStream struct {
 	ctx    context.Context
-	mod    api.Module
+	pool   wazeropool.Instance
 	meta   *meta
 	method string
 	data   chan msgErr
 }
 
-func (cs *handlerServerStream) Header() (md metadata.MD, err error) {
+func (h *handlerServerStream) Header() (md metadata.MD, err error) {
 	return
 }
 
-func (cs *handlerServerStream) Trailer() (md metadata.MD) {
+func (h *handlerServerStream) Trailer() (md metadata.MD) {
 	return
 }
 
-func (cs *handlerServerStream) CloseSend() (err error) {
-	close(cs.data)
+func (h *handlerServerStream) CloseSend() (err error) {
+	close(h.data)
 	return
 }
 
-func (cs *handlerServerStream) Context() context.Context {
-	return cs.ctx
+func (h *handlerServerStream) Context() context.Context {
+	return h.ctx
 }
 
-func (cs *handlerServerStream) send(msg []byte, err error) {
+func (h *handlerServerStream) send(msg []byte, err error) {
 	d := msgErr{msg, err, &sync.WaitGroup{}}
 	d.wg.Add(1)
-	cs.data <- d
+	h.data <- d
 	d.wg.Wait()
 }
 
-func (cs *handlerServerStream) SendMsg(m any) (err error) {
+func (h *handlerServerStream) SendMsg(m any) (err error) {
 	msg, err := proto.Marshal(m.(proto.Message))
 	if err != nil {
 		panic(err)
 	}
-	setMethod(cs.mod, cs.meta, []byte(cs.method))
-	setMsg(cs.mod, cs.meta, msg)
-	cs.mod.ExportedFunction("__grpcServerCall").Call(cs.ctx)
+	h.pool.Run(func(mod api.Module) {
+		setMethod(mod, h.meta, []byte(h.method))
+		setMsg(mod, h.meta, msg)
+		mod.ExportedFunction("__grpc_server_call").Call(h.ctx)
+	})
 	return
 }
 
-func (cs *handlerServerStream) RecvMsg(m any) (err error) {
+func (h *handlerServerStream) RecvMsg(m any) (err error) {
 	select {
-	case d, ok := <-cs.data:
+	case d, ok := <-h.data:
 		if !ok {
 			return io.EOF
 		}
@@ -80,7 +84,7 @@ func (cs *handlerServerStream) RecvMsg(m any) (err error) {
 			}
 		}
 		err = proto.Unmarshal(d.msg, m.(proto.Message))
-	case <-cs.ctx.Done():
+	case <-h.ctx.Done():
 	}
 	return
 }
