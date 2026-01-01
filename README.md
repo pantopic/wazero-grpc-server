@@ -136,7 +136,7 @@ This project is in alpha. Breaking API changes should be expected until Beta.
   - [ ] Server streaming support
   - [ ] Client streaming support
   - [ ] Bidirectional streaming support
-  - [ ] Asynchronous unary response
+  - [ ] Asynchronous unary support
   - [ ] Stabilize API
 - `v0.x.x` - Beta
   - [ ] Finalize API

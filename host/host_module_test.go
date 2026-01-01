@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 	"net"
+	"os"
 	"testing"
 
 	"github.com/tetratelabs/wazero"
@@ -14,6 +15,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/pantopic/wazero-pipe/host"
 	"github.com/pantopic/wazero-pool"
 
 	"github.com/pantopic/wazero-grpc-server/host/pb"
@@ -32,10 +34,7 @@ var testWasmLite []byte
 var testWasmLiteProd []byte
 
 func TestHostModule(t *testing.T) {
-	var (
-		ctx = context.Background()
-		out = &bytes.Buffer{}
-	)
+	ctx := context.Background()
 	r := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig())
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 
@@ -44,6 +43,8 @@ func TestHostModule(t *testing.T) {
 		hostModule = New()
 		hostModule.Register(ctx, r)
 	})
+	pipeModule := wazero_pipe.New()
+	pipeModule.Register(ctx, r)
 
 	port := 9000
 	for _, tc := range []struct {
@@ -57,7 +58,7 @@ func TestHostModule(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s := grpc.NewServer()
-			cfg := wazero.NewModuleConfig().WithStdout(out)
+			cfg := wazero.NewModuleConfig().WithStdout(os.Stdout)
 			pool, err := wazeropool.New(ctx, r, tc.wasm,
 				wazeropool.WithModuleConfig(cfg))
 			if err != nil {
@@ -68,20 +69,24 @@ func TestHostModule(t *testing.T) {
 				if err != nil {
 					t.Fatalf(`%v`, err)
 				}
+				ctx, err = pipeModule.InitContext(ctx, mod)
+				if err != nil {
+					t.Fatalf(`%v`, err)
+				}
 			})
-			meta := get[*meta](ctx, hostModule.ctxKeyMeta)
-			err = hostModule.RegisterServices(ctx, s, pool)
+			err = hostModule.RegisterServices(ctx, s, pool, pipeModule.ContextCopy)
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
-			mod := pool.Get()
-			if readUint32(mod, meta.ptrMethodCap) != 256 {
-				t.Errorf("incorrect maximum method length: %#v", meta)
-			}
-			if readUint32(mod, meta.ptrMsgCap) != 1.5*1024*1024 {
-				t.Errorf("incorrect maximum method length: %#v", meta)
-			}
-			pool.Put(mod)
+			pool.Run(func(mod api.Module) {
+				meta := get[*meta](ctx, hostModule.ctxKeyMeta)
+				if readUint32(mod, meta.ptrMethodCap) != 256 {
+					t.Errorf("incorrect maximum method length: %#v", meta)
+				}
+				if readUint32(mod, meta.ptrMsgCap) != 1.5*1024*1024 {
+					t.Errorf("incorrect maximum method length: %#v", meta)
+				}
+			})
 			port++
 			addr := fmt.Sprintf(`:%d`, port)
 			lis, err := net.Listen(`tcp`, addr)
@@ -183,13 +188,44 @@ func TestHostModule(t *testing.T) {
 					t.Fatalf(`Expected 9 got %v`, i)
 				}
 			})
+			t.Run(`bidirectional-stream`, func(t *testing.T) {
+				s, err := client.BidirectionalStream(ctx)
+				if err != nil {
+					t.Fatalf(`%v`, err)
+				}
+				go func() {
+					for i := range 10 {
+						s.Send(&pb.BidirectionalStreamRequest{
+							Foo4: uint64(i),
+						})
+					}
+				}()
+				var n uint64
+				var i uint64
+				for i = range 10 {
+					res, err := s.Recv()
+					if err != nil {
+						t.Fatalf(`%v`, err)
+					}
+					n += i
+					if res.Bar4 != n {
+						t.Fatalf(`Wrong number %v != %v`, res.Bar4, n)
+					}
+				}
+				err = s.CloseSend()
+				if err != nil {
+					t.Fatalf(`%v`, err)
+				}
+				if i != 9 {
+					t.Fatalf(`Expected 9 got %v`, i)
+				}
+			})
 		})
 	}
 }
 
 func BenchmarkHostModule(b *testing.B) {
 	var ctx = context.Background()
-	var out = &bytes.Buffer{}
 	r := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig())
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 	hostModule := New()
@@ -205,7 +241,7 @@ func BenchmarkHostModule(b *testing.B) {
 			{`testWasmLiteProd`, testWasmLiteProd},
 		} {
 			s := grpc.NewServer()
-			cfg := wazero.NewModuleConfig().WithStdout(out)
+			cfg := wazero.NewModuleConfig().WithStdout(os.Stdout)
 			pool, err := wazeropool.New(ctx, r, tc.wasm, wazeropool.WithModuleConfig(cfg))
 			if err != nil {
 				b.Fatalf(`%v`, err)
@@ -249,7 +285,7 @@ func BenchmarkHostModule(b *testing.B) {
 				{`testWasmLiteProd`, testWasmLiteProd},
 			} {
 				s := grpc.NewServer()
-				cfg := wazero.NewModuleConfig().WithStdout(out)
+				cfg := wazero.NewModuleConfig().WithStdout(os.Stdout)
 				pool, err := wazeropool.New(ctx, r, tc.wasm,
 					wazeropool.WithModuleConfig(cfg),
 					wazeropool.WithLimit(n))

@@ -19,11 +19,13 @@ type msgErr struct {
 	wg  *sync.WaitGroup
 }
 
-func newHandlerServerStream(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
-	s := &handlerServerStream{ctx, pool, meta, method, make(chan msgErr)}
-	s.ctx = context.WithValue(s.ctx, DefaultCtxKeyMeta, meta)
-	s.ctx = context.WithValue(s.ctx, DefaultCtxKeySend, s.send)
-	return s
+func newHandlerFactoryServerStream(m *hostModule) handlerFactory {
+	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
+		s := &handlerServerStream{ctx, pool, meta, method, make(chan msgErr)}
+		s.ctx = context.WithValue(s.ctx, m.ctxKeyMeta, meta)
+		s.ctx = context.WithValue(s.ctx, m.ctxKeySend, s.send)
+		return s
+	}
 }
 
 type handlerServerStream struct {
@@ -66,7 +68,7 @@ func (h *handlerServerStream) SendMsg(m any) (err error) {
 	h.pool.Run(func(mod api.Module) {
 		setMethod(mod, h.meta, []byte(h.method))
 		setMsg(mod, h.meta, msg)
-		mod.ExportedFunction("__grpc_server_call").Call(h.ctx)
+		mod.ExportedFunction("__grpc_server_server_stream").Call(h.ctx)
 	})
 	return
 }

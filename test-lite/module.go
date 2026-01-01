@@ -5,19 +5,27 @@ import (
 
 	proto "github.com/aperturerobotics/protobuf-go-lite"
 
+	"github.com/pantopic/wazero-pipe/sdk-go"
+
 	"github.com/pantopic/wazero-grpc-server/sdk-go"
 	"github.com/pantopic/wazero-grpc-server/sdk-go/codes"
 	"github.com/pantopic/wazero-grpc-server/sdk-go/status"
 	"github.com/pantopic/wazero-grpc-server/test-lite/pb"
 )
 
+var bridge *pipe.Pipe[uint64]
+
 func main() {
-	s := grpc_server.NewService(`test.TestService`)
-	s.Unary(`Test`, protoWrap(test, &pb.TestRequest{}))
-	s.Unary(`Retest`, protoWrap(retest, &pb.RetestRequest{}))
-	s.Unary(`TestBytes`, protoWrap(testBytes, &pb.TestBytesRequest{}))
-	s.ClientStream(`ClientStream`, protoWrapClientStream(clientStream, &pb.ClientStreamRequest{}))
-	s.ServerStream(`ServerStream`, protoWrapServerStream(serverStream, &pb.ServerStreamRequest{}))
+	bridge = pipe.New[uint64]()
+	grpc_server.NewService(`test.TestService`).
+		Unary(`Test`, protoWrap(test, &pb.TestRequest{})).
+		Unary(`Retest`, protoWrap(retest, &pb.RetestRequest{})).
+		Unary(`TestBytes`, protoWrap(testBytes, &pb.TestBytesRequest{})).
+		ClientStream(`ClientStream`, protoWrapClientStream(clientStream, &pb.ClientStreamRequest{})).
+		ServerStream(`ServerStream`, protoWrapServerStream(serverStream, &pb.ServerStreamRequest{})).
+		BidirectionalStream(`BidirectionalStream`,
+			protoWrapBidirectionalRecv(bidirectionalStreamRecv, &pb.BidirectionalStreamRequest{}),
+			protoWrapBidirectionalSend(bidirectionalStreamSend))
 }
 
 func test(req *pb.TestRequest) (res *pb.TestResponse, err error) {
@@ -48,6 +56,29 @@ func serverStream(req *pb.ServerStreamRequest) (res iter.Seq[*pb.ServerStreamRes
 				return
 			}
 			n++
+		}
+	}, nil
+}
+
+func bidirectionalStreamRecv(reqs iter.Seq[*pb.BidirectionalStreamRequest]) (err error) {
+	for req := range reqs {
+		bridge.Send(req.Foo4)
+	}
+	return nil
+}
+
+func bidirectionalStreamSend() (res iter.Seq[*pb.BidirectionalStreamResponse], err error) {
+	var n uint64
+	return func(yield func(*pb.BidirectionalStreamResponse) bool) {
+		for {
+			i, err := bridge.Recv()
+			if err != nil {
+				break
+			}
+			n += i
+			if !yield(&pb.BidirectionalStreamResponse{Bar4: n}) {
+				return
+			}
 		}
 	}, nil
 }
@@ -105,6 +136,50 @@ func protoWrapServerStream[ReqType proto.Message, ResType proto.Message](fn func
 			return nil, status.New(codes.InvalidArgument, err.Error()).Err()
 		}
 		all, err := fn(req)
+		if err != nil {
+			return nil, status.New(codes.Unknown, err.Error()).Err()
+		}
+		return func(yield func([]byte) bool) {
+			for res := range all {
+				out, err2 := res.MarshalVT()
+				if err2 != nil {
+					err2 = status.New(codes.InvalidArgument, err.Error()).Err()
+					return
+				}
+				if !yield(out) {
+					return
+				}
+			}
+		}, nil
+	}
+}
+
+func protoWrapBidirectionalRecv[ReqType proto.Message](fn func(iter.Seq[ReqType]) error, req ReqType) func(iter.Seq[[]byte]) error {
+	return func(in iter.Seq[[]byte]) (err error) {
+		var err2 error
+		err = fn(func(yield func(ReqType) bool) {
+			for b := range in {
+				err2 = req.UnmarshalVT(b)
+				if err2 != nil {
+					err2 = status.New(codes.InvalidArgument, err.Error()).Err()
+					return
+				}
+				if !yield(req) {
+					return
+				}
+			}
+		})
+		if err2 != nil {
+			err = err2
+			return
+		}
+		return
+	}
+}
+
+func protoWrapBidirectionalSend[ResType proto.Message](fn func() (iter.Seq[ResType], error)) func() (iter.Seq[[]byte], error) {
+	return func() (out iter.Seq[[]byte], err error) {
+		all, err := fn()
 		if err != nil {
 			return nil, status.New(codes.Unknown, err.Error()).Err()
 		}

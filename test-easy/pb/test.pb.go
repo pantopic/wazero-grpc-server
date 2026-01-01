@@ -313,3 +313,61 @@ func (tr *ServerStreamResponse) Unmarshal(src []byte) (err error) {
 	}
 	return nil
 }
+
+type BidirectionalStreamRequest struct {
+	Foo4 uint64
+}
+
+func (tr *BidirectionalStreamRequest) Marshal(dst []byte) []byte {
+	m := mp.Get()
+	tr.marshal(m.MessageMarshaler())
+	dst = m.Marshal(dst)
+	mp.Put(m)
+	return dst
+}
+
+func (tr *BidirectionalStreamRequest) marshal(mm *easyproto.MessageMarshaler) {
+	mm.AppendUint64(6, tr.Foo4)
+}
+
+func (tr *BidirectionalStreamRequest) Unmarshal(src []byte) (err error) {
+	tr.Foo4 = 0
+	var fc easyproto.FieldContext
+	for len(src) > 0 {
+		src, _ = fc.NextField(src)
+		switch fc.FieldNum {
+		case 6:
+			tr.Foo4, _ = fc.Uint64()
+		}
+	}
+	return nil
+}
+
+type BidirectionalStreamResponse struct {
+	Bar4 uint64
+}
+
+func (tr *BidirectionalStreamResponse) Marshal(dst []byte) []byte {
+	m := mp.Get()
+	tr.marshal(m.MessageMarshaler())
+	dst = m.Marshal(dst)
+	mp.Put(m)
+	return dst
+}
+
+func (tr *BidirectionalStreamResponse) marshal(mm *easyproto.MessageMarshaler) {
+	mm.AppendUint64(7, tr.Bar4)
+}
+
+func (tr *BidirectionalStreamResponse) Unmarshal(src []byte) (err error) {
+	tr.Bar4 = 0
+	var fc easyproto.FieldContext
+	for len(src) > 0 {
+		src, _ = fc.NextField(src)
+		switch fc.FieldNum {
+		case 7:
+			tr.Bar4, _ = fc.Uint64()
+		}
+	}
+	return nil
+}

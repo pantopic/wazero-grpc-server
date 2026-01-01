@@ -34,21 +34,21 @@ func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.
 			ctx = f(h.ctx, ctx)
 		}
 		clientStream := f(ctx, h.pool, h.meta, fullMethodName)
-		s2cErrChan := h.forwardServerToWazero(serverStream, clientStream)
-		c2sErrChan := h.forwardWazeroToServer(clientStream, serverStream)
+		errChanInbound := h.forwardInbound(serverStream, clientStream)
+		errChanOutbound := h.forwardOutbound(clientStream, serverStream)
 		for range 2 {
 			select {
-			case s2cErr := <-s2cErrChan:
-				if s2cErr == io.EOF {
+			case errInbound := <-errChanInbound:
+				if errInbound == io.EOF {
 					clientStream.CloseSend()
 				} else {
 					cancel()
-					return status.Errorf(codes.Internal, "failed proxying s2c: %v", s2cErr)
+					return status.Errorf(codes.Internal, "failed proxying s2c: %v", errInbound)
 				}
-			case c2sErr := <-c2sErrChan:
+			case errOutbound := <-errChanOutbound:
 				serverStream.SetTrailer(clientStream.Trailer())
-				if c2sErr != io.EOF {
-					return c2sErr
+				if errOutbound != io.EOF {
+					return errOutbound
 				}
 				return nil
 			}
@@ -57,7 +57,25 @@ func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.
 	}
 }
 
-func (h *grpcHandler) forwardWazeroToServer(src grpc.ClientStream, dst grpc.ServerStream) chan error {
+func (h *grpcHandler) forwardInbound(src grpc.ServerStream, dst grpc.ClientStream) chan error {
+	ret := make(chan error, 1)
+	go func() {
+		f := &emptypb.Empty{}
+		for i := 0; ; i++ {
+			if err := src.RecvMsg(f); err != nil {
+				ret <- err
+				break
+			}
+			if err := dst.SendMsg(f); err != nil {
+				ret <- err
+				break
+			}
+		}
+	}()
+	return ret
+}
+
+func (h *grpcHandler) forwardOutbound(src grpc.ClientStream, dst grpc.ServerStream) chan error {
 	ret := make(chan error, 1)
 	go func() {
 		f := &emptypb.Empty{}
@@ -76,24 +94,6 @@ func (h *grpcHandler) forwardWazeroToServer(src grpc.ClientStream, dst grpc.Serv
 					ret <- err
 					break
 				}
-			}
-			if err := dst.SendMsg(f); err != nil {
-				ret <- err
-				break
-			}
-		}
-	}()
-	return ret
-}
-
-func (h *grpcHandler) forwardServerToWazero(src grpc.ServerStream, dst grpc.ClientStream) chan error {
-	ret := make(chan error, 1)
-	go func() {
-		f := &emptypb.Empty{}
-		for i := 0; ; i++ {
-			if err := src.RecvMsg(f); err != nil {
-				ret <- err
-				break
 			}
 			if err := dst.SendMsg(f); err != nil {
 				ret <- err

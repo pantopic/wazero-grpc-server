@@ -14,11 +14,13 @@ import (
 	"github.com/pantopic/wazero-pool"
 )
 
-func newHandlerClientStream(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
-	next := make(chan []byte)
-	ctx = context.WithValue(ctx, DefaultCtxKeyMeta, meta)
-	ctx = context.WithValue(ctx, DefaultCtxKeyNext, next)
-	return &handlerClientStream{ctx, pool, meta, method, make(chan resp), next, false}
+func newHandlerFactoryClientStream(m *hostModule) handlerFactory {
+	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
+		next := make(chan []byte)
+		ctx = context.WithValue(ctx, m.ctxKeyMeta, meta)
+		ctx = context.WithValue(ctx, m.ctxKeyNext, next)
+		return &handlerClientStream{ctx, pool, meta, method, make(chan resp), next, false}
+	}
 }
 
 type handlerClientStream struct {
@@ -62,7 +64,7 @@ func (h *handlerClientStream) SendMsg(m any) (err error) {
 				setMethod(mod, h.meta, []byte(h.method))
 				setMsg(mod, h.meta, msg)
 				setErrCode(mod, h.meta, codes.OK)
-				_, err := mod.ExportedFunction("__grpc_server_call").Call(h.ctx)
+				_, err := mod.ExportedFunction("__grpc_server_client_stream").Call(h.ctx)
 				if err != nil {
 					log.Println(err)
 				}

@@ -18,10 +18,9 @@ import (
 const Name = "pantopic/wazero-grpc-server"
 
 var (
-	DefaultCtxKeyMeta  = `wazero_grpc_server_meta`
-	DefaultCtxKeyNext  = `wazero_grpc_next`
-	DefaultCtxKeySend  = `wazero_grpc_send`
-	DefaultCtxKeyClose = `wazero_grpc_close`
+	DefaultCtxKeyMeta = `wazero_grpc_server_meta`
+	DefaultCtxKeyNext = `wazero_grpc_server_next`
+	DefaultCtxKeySend = `wazero_grpc_server_send`
 )
 
 type meta struct {
@@ -66,19 +65,19 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 		builder = builder.NewFunctionBuilder().WithGoModuleFunction(api.GoModuleFunc(fn), nil, nil).Export(name)
 	}
 	for name, fn := range map[string]any{
-		"Recv": func(ctx context.Context) (msg []byte, ok bool) {
-			msg, ok = <-get[chan []byte](ctx, p.ctxKeyNext)
+		"__host_grpc_server_recv": func(next chan []byte) (msg []byte, ok bool) {
+			msg, ok = <-next
 			return
 		},
-		"Send": func(ctx context.Context, msg []byte, err error) {
-			get[func([]byte, error)](ctx, p.ctxKeySend)(msg, err) // TODO - Replace copy with blocking call
+		"__host_grpc_server_send": func(ctx context.Context, msg []byte, err error) {
+			get[func([]byte, error)](ctx, p.ctxKeySend)(msg, err)
 		},
 	} {
 		switch fn := fn.(type) {
-		case func(context.Context) ([]byte, bool):
+		case func(next chan []byte) ([]byte, bool):
 			register(name, func(ctx context.Context, m api.Module, stack []uint64) {
 				meta := get[*meta](ctx, p.ctxKeyMeta)
-				b, ok := fn(ctx)
+				b, ok := fn(get[chan []byte](ctx, p.ctxKeyNext))
 				if !ok {
 					setErrCode(m, meta, codes.Canceled)
 					return
@@ -137,7 +136,7 @@ func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool 
 	mod := pool.Get()
 	defer pool.Put(mod)
 	meta := get[*meta](ctx, p.ctxKeyMeta)
-	// Format: msg = "/package1.ServiceName/u.method1,u.method2,c.method3/service2.ServiceName/u.method1,s.method2"
+	// Format: msg = "/package1.ServiceName/u.method1,c.method2/service2.ServiceName/s.method1,b.method2"
 	parts := strings.Split(string(getMsg(mod, meta)), "/")
 	for i := 1; i+2 <= len(parts); i += 2 {
 		p.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","), ctx, copy...)
@@ -163,11 +162,13 @@ func (p *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, m
 		}
 		switch parts[0] {
 		case "u":
-			d.Handler = h.handler(newHandlerUnary)
+			d.Handler = h.handler(newHandlerFactoryUnary(p))
 		case "c":
-			d.Handler = h.handler(newHandlerClientStream)
+			d.Handler = h.handler(newHandlerFactoryClientStream(p))
 		case "s":
-			d.Handler = h.handler(newHandlerServerStream)
+			d.Handler = h.handler(newHandlerFactoryServerStream(p))
+		case "b":
+			d.Handler = h.handler(newHandlerFactoryBidirectionalStream(p))
 		}
 		fakeDesc.Streams = append(fakeDesc.Streams, d)
 	}

@@ -13,8 +13,10 @@ import (
 	"github.com/pantopic/wazero-pool"
 )
 
-func newHandlerUnary(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
-	return &handlerUnary{ctx, pool, meta, method, make(chan resp, 10)}
+func newHandlerFactoryUnary(_ *hostModule) handlerFactory {
+	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
+		return &handlerUnary{ctx, pool, meta, method, make(chan resp, 10)}
+	}
 }
 
 type handlerUnary struct {
@@ -56,7 +58,7 @@ func (h *handlerUnary) SendMsg(m any) (err error) {
 		setMethod(mod, h.meta, []byte(h.method))
 		setMsg(mod, h.meta, data)
 		setErrCode(mod, h.meta, codes.OK)
-		if _, err = mod.ExportedFunction("__grpc_server_call").Call(h.ctx); err != nil {
+		if _, err = mod.ExportedFunction("__grpc_server_unary").Call(h.ctx); err != nil {
 			return
 		}
 		r.err = getError(mod, h.meta)
