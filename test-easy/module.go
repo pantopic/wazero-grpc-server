@@ -23,7 +23,7 @@ func main() {
 		ServerStream(`ServerStream`, protoWrapServerStream(serverStream, &pb.ServerStreamRequest{})).
 		BidirectionalStream(`BidirectionalStream`,
 			protoWrapBidirectionalRecv(bidirectionalStreamRecv, &pb.BidirectionalStreamRequest{}),
-			protoWrapBidirectionalSend(bidirectionalStreamSend, &pb.BidirectionalStreamResponse{}))
+			protoWrapBidirectionalSend(bidirectionalStreamSend))
 }
 
 func test(req *pb.TestRequest) (res *pb.TestResponse, err error) {
@@ -163,7 +163,7 @@ func protoWrapBidirectionalRecv[ReqType pb.Message](fn func(iter.Seq[ReqType]) e
 	}
 }
 
-func protoWrapBidirectionalSend[ResType pb.Message](fn func() (iter.Seq[ResType], error), req ResType) func() (iter.Seq[[]byte], error) {
+func protoWrapBidirectionalSend[ResType pb.Message](fn func() (iter.Seq[ResType], error)) func() (iter.Seq[[]byte], error) {
 	return func() (out iter.Seq[[]byte], err error) {
 		all, err := fn()
 		if err != nil {

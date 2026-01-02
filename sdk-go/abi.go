@@ -225,11 +225,11 @@ func __grpc_server_bidirectional_send() {
 }
 
 //go:wasm-module pantopic/wazero-grpc-server
-//export __host_grpc_server_send
+//export __grpc_server_send
 func grpcSend()
 
 //go:wasm-module pantopic/wazero-grpc-server
-//export __host_grpc_server_recv
+//export __grpc_server_recv
 func grpcRecv()
 
 // Fix for lint rule `unusedfunc`

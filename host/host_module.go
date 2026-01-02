@@ -65,11 +65,11 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 		builder = builder.NewFunctionBuilder().WithGoModuleFunction(api.GoModuleFunc(fn), nil, nil).Export(name)
 	}
 	for name, fn := range map[string]any{
-		"__host_grpc_server_recv": func(next chan []byte) (msg []byte, ok bool) {
+		"__grpc_server_recv": func(next chan []byte) (msg []byte, ok bool) {
 			msg, ok = <-next
 			return
 		},
-		"__host_grpc_server_send": func(ctx context.Context, msg []byte, err error) {
+		"__grpc_server_send": func(ctx context.Context, msg []byte, err error) {
 			get[func([]byte, error)](ctx, p.ctxKeySend)(msg, err)
 		},
 	} {
