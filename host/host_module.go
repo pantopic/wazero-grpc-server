@@ -133,14 +133,16 @@ type ctxCopyFunc func(dst, src context.Context) context.Context
 // RegisterServices attaches the grpc service(s) to the grpc server
 // Called once before server open, usually given a module instance pool
 func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, copy ...ctxCopyFunc) error {
-	mod := pool.Get()
-	defer pool.Put(mod)
+	ctx = wazeropool.ContextSet(ctx, pool)
+	copy = append(copy, wazeropool.ContextCopy)
 	meta := get[*meta](ctx, p.ctxKeyMeta)
-	// Format: msg = "/package1.ServiceName/u.method1,c.method2/service2.ServiceName/s.method1,b.method2"
-	parts := strings.Split(string(getMsg(mod, meta)), "/")
-	for i := 1; i+2 <= len(parts); i += 2 {
-		p.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","), ctx, copy...)
-	}
+	pool.Run(func(mod api.Module) {
+		// Format: msg = "/package1.ServiceName/u.method1,c.method2/service2.ServiceName/s.method1,b.method2"
+		parts := strings.Split(string(getMsg(mod, meta)), "/")
+		for i := 1; i+2 <= len(parts); i += 2 {
+			p.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","), ctx, copy...)
+		}
+	})
 	return nil
 }
 
