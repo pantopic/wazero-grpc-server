@@ -31,7 +31,7 @@ func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.
 		ctx, cancel := context.WithCancel(serverStream.Context())
 		defer cancel()
 		for _, f := range h.init {
-			ctx = f(h.ctx, ctx)
+			ctx = f(ctx, h.ctx)
 		}
 		clientStream := f(ctx, h.pool, h.meta, fullMethodName)
 		errChanInbound := h.forwardInbound(serverStream, clientStream)
