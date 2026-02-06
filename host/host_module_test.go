@@ -79,7 +79,7 @@ func TestHostModule(t *testing.T) {
 				t.Fatalf(`%v`, err)
 			}
 			pool.Run(func(mod api.Module) {
-				meta := get[*meta](ctx, hostModule.ctxKeyMeta)
+				meta := get[*meta](ctx, ctxKeyMeta)
 				if readUint32(mod, meta.ptrMethodCap) != 256 {
 					t.Errorf("incorrect maximum method length: %#v", meta)
 				}

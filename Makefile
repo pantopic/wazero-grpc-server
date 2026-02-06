@@ -1,5 +1,5 @@
 work:
-	go work use grpc-server-go
+	go work use sdk-go
 	go work use test-easy
 	go work use test-lite
 	go work use host

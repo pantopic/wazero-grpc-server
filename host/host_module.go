@@ -18,9 +18,9 @@ import (
 const Name = "pantopic/wazero-grpc-server"
 
 var (
-	DefaultCtxKeyMeta = `wazero_grpc_server_meta`
-	DefaultCtxKeyNext = `wazero_grpc_server_next`
-	DefaultCtxKeySend = `wazero_grpc_server_send`
+	ctxKeyMeta = Name + `/meta`
+	ctxKeyNext = Name + `/next`
+	ctxKeySend = Name + `/send`
 )
 
 type meta struct {
@@ -36,18 +36,11 @@ type meta struct {
 type hostModule struct {
 	sync.RWMutex
 
-	module     api.Module
-	ctxKeyMeta string
-	ctxKeyNext string
-	ctxKeySend string
+	module api.Module
 }
 
 func New(opts ...Option) *hostModule {
-	p := &hostModule{
-		ctxKeyMeta: DefaultCtxKeyMeta,
-		ctxKeyNext: DefaultCtxKeyNext,
-		ctxKeySend: DefaultCtxKeySend,
-	}
+	p := &hostModule{}
 	for _, opt := range opts {
 		opt(p)
 	}
@@ -70,14 +63,14 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 			return
 		},
 		"__grpc_server_send": func(ctx context.Context, msg []byte, err error) {
-			get[func([]byte, error)](ctx, p.ctxKeySend)(msg, err)
+			get[func([]byte, error)](ctx, ctxKeySend)(msg, err)
 		},
 	} {
 		switch fn := fn.(type) {
 		case func(next chan []byte) ([]byte, bool):
 			register(name, func(ctx context.Context, m api.Module, stack []uint64) {
-				meta := get[*meta](ctx, p.ctxKeyMeta)
-				b, ok := fn(get[chan []byte](ctx, p.ctxKeyNext))
+				meta := get[*meta](ctx, ctxKeyMeta)
+				b, ok := fn(get[chan []byte](ctx, ctxKeyNext))
 				if !ok {
 					setErrCode(m, meta, codes.Canceled)
 					return
@@ -87,7 +80,7 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 			})
 		case func(context.Context, []byte, error):
 			register(name, func(ctx context.Context, m api.Module, stack []uint64) {
-				meta := get[*meta](ctx, p.ctxKeyMeta)
+				meta := get[*meta](ctx, ctxKeyMeta)
 				fn(ctx, getMsg(m, meta), getError(m, meta))
 			})
 		default:
@@ -117,14 +110,14 @@ func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Con
 	} {
 		*v = readUint32(m, ptr+uint32(4*i))
 	}
-	return context.WithValue(ctx, p.ctxKeyMeta, meta), nil
+	return context.WithValue(ctx, ctxKeyMeta, meta), nil
 }
 
 // ContextCopy populates dst context with the meta page from src context.
 func (h *hostModule) ContextCopy(dst, src context.Context) context.Context {
-	dst = context.WithValue(dst, h.ctxKeyMeta, get[*meta](src, h.ctxKeyMeta))
-	dst = context.WithValue(dst, h.ctxKeyNext, get[chan []byte](src, h.ctxKeyNext))
-	dst = context.WithValue(dst, h.ctxKeySend, get[func([]byte, error)](src, h.ctxKeySend))
+	dst = context.WithValue(dst, ctxKeyMeta, get[*meta](src, ctxKeyMeta))
+	dst = context.WithValue(dst, ctxKeyNext, get[chan []byte](src, ctxKeyNext))
+	dst = context.WithValue(dst, ctxKeySend, get[func([]byte, error)](src, ctxKeySend))
 	return dst
 }
 
@@ -135,7 +128,7 @@ type ctxCopyFunc func(dst, src context.Context) context.Context
 func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, copy ...ctxCopyFunc) error {
 	ctx = wazeropool.ContextSet(ctx, pool)
 	copy = append(copy, wazeropool.ContextCopy)
-	meta := get[*meta](ctx, p.ctxKeyMeta)
+	meta := get[*meta](ctx, ctxKeyMeta)
 	pool.Run(func(mod api.Module) {
 		// Format: msg = "/package1.ServiceName/u.method1,c.method2/service2.ServiceName/s.method1,b.method2"
 		parts := strings.Split(string(getMsg(mod, meta)), "/")

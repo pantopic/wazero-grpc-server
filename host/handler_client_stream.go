@@ -17,8 +17,8 @@ import (
 func newHandlerFactoryClientStream(m *hostModule) handlerFactory {
 	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
 		next := make(chan []byte)
-		ctx = context.WithValue(ctx, m.ctxKeyMeta, meta)
-		ctx = context.WithValue(ctx, m.ctxKeyNext, next)
+		ctx = context.WithValue(ctx, ctxKeyMeta, meta)
+		ctx = context.WithValue(ctx, ctxKeyNext, next)
 		return &handlerClientStream{ctx, pool, meta, method, make(chan resp), next, false}
 	}
 }

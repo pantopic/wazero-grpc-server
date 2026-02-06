@@ -22,8 +22,8 @@ type msgErr struct {
 func newHandlerFactoryServerStream(m *hostModule) handlerFactory {
 	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
 		s := &handlerServerStream{ctx, pool, meta, method, make(chan msgErr)}
-		s.ctx = context.WithValue(s.ctx, m.ctxKeyMeta, meta)
-		s.ctx = context.WithValue(s.ctx, m.ctxKeySend, s.send)
+		s.ctx = context.WithValue(s.ctx, ctxKeyMeta, meta)
+		s.ctx = context.WithValue(s.ctx, ctxKeySend, s.send)
 		return s
 	}
 }

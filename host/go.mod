@@ -5,7 +5,7 @@ go 1.24.3
 require (
 	github.com/pantopic/wazero-pipe/host v0.0.0-20251227000548-7f6608ad8422
 	github.com/pantopic/wazero-pool v0.0.6
-	github.com/tetratelabs/wazero v1.9.0
+	github.com/tetratelabs/wazero v1.11.0
 	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.6
 )

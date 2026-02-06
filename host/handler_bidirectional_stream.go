@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"log/slog"
 	"sync"
 
 	"github.com/tetratelabs/wazero/api"
@@ -19,9 +20,9 @@ func newHandlerFactoryBidirectionalStream(m *hostModule) handlerFactory {
 	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
 		next := make(chan []byte)
 		s := &handlerBidirectionalStream{ctx, pool, meta, method, make(chan resp), make(chan msgErr), next, false, false}
-		s.ctx = context.WithValue(s.ctx, m.ctxKeyMeta, meta)
-		s.ctx = context.WithValue(s.ctx, m.ctxKeyNext, next)
-		s.ctx = context.WithValue(s.ctx, m.ctxKeySend, s.send)
+		s.ctx = context.WithValue(s.ctx, ctxKeyMeta, meta)
+		s.ctx = context.WithValue(s.ctx, ctxKeyNext, next)
+		s.ctx = context.WithValue(s.ctx, ctxKeySend, s.send)
 		return s
 	}
 }
@@ -70,11 +71,12 @@ func (h *handlerBidirectionalStream) SendMsg(m any) (err error) {
 				setErrCode(mod, h.meta, codes.OK)
 				_, err = mod.ExportedFunction("__grpc_server_bidirectional_recv").Call(h.ctx)
 				if err != nil {
-					log.Println(err)
+					slog.Info(`SendMsg`, `err`, err)
 				}
 				err = getError(mod, h.meta)
 			})
 			if err != nil {
+				slog.Info(`SendMsg`, `err`, err)
 				h.send(nil, err)
 			}
 		}()
@@ -123,6 +125,10 @@ func (h *handlerBidirectionalStream) RecvMsg(m any) (err error) {
 			}
 		}
 		err = proto.Unmarshal(d.msg, m.(proto.Message))
+		if err != nil {
+			slog.Info(`RecvMsg`, `err`, err, `data`, d.msg)
+			log.Fatalf(`%#v`, m)
+		}
 	case <-h.ctx.Done():
 	}
 	return
