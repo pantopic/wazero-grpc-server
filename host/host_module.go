@@ -39,12 +39,12 @@ type hostModule struct {
 	module api.Module
 }
 
-func New(opts ...Option) *hostModule {
-	p := &hostModule{}
+func New(opts ...Option) (h *hostModule) {
+	h = &hostModule{}
 	for _, opt := range opts {
-		opt(p)
+		opt(h)
 	}
-	return p
+	return
 }
 
 func (p *hostModule) Name() string {
