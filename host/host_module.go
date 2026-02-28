@@ -47,12 +47,12 @@ func New(opts ...Option) (h *hostModule) {
 	return
 }
 
-func (p *hostModule) Name() string {
+func (h *hostModule) Name() string {
 	return Name
 }
 
 // Register instantiates the host module, making it available to all module instances in this runtime
-func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error) {
+func (h *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error) {
 	builder := r.NewHostModuleBuilder(Name)
 	register := func(name string, fn func(ctx context.Context, m api.Module, stack []uint64)) {
 		builder = builder.NewFunctionBuilder().WithGoModuleFunction(api.GoModuleFunc(fn), nil, nil).Export(name)
@@ -87,12 +87,12 @@ func (p *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 			log.Panicf("Method signature implementation missing: %#v", fn)
 		}
 	}
-	p.module, err = builder.Instantiate(ctx)
+	h.module, err = builder.Instantiate(ctx)
 	return
 }
 
 // InitContext retrieves the meta page from the wasm module
-func (p *hostModule) InitContext(ctx context.Context, m api.Module) (context.Context, error) {
+func (h *hostModule) InitContext(ctx context.Context, m api.Module) (context.Context, error) {
 	stack, err := m.ExportedFunction(`__grpc_server`).Call(ctx)
 	if err != nil {
 		return ctx, err
@@ -125,7 +125,7 @@ type ctxCopyFunc func(dst, src context.Context) context.Context
 
 // RegisterServices attaches the grpc service(s) to the grpc server
 // Called once before server open, usually given a module instance pool
-func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, copy ...ctxCopyFunc) error {
+func (h *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, copy ...ctxCopyFunc) error {
 	ctx = wazeropool.ContextSet(ctx, pool)
 	copy = append(copy, wazeropool.ContextCopy)
 	meta := get[*meta](ctx, ctxKeyMeta)
@@ -133,14 +133,14 @@ func (p *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool 
 		// Format: msg = "/package1.ServiceName/u.method1,c.method2/service2.ServiceName/s.method1,b.method2"
 		parts := strings.Split(string(getMsg(mod, meta)), "/")
 		for i := 1; i+2 <= len(parts); i += 2 {
-			p.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","), ctx, copy...)
+			h.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","), ctx, copy...)
 		}
 	})
 	return nil
 }
 
-func (p *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string, ctx context.Context, copy ...ctxCopyFunc) {
-	h := &grpcHandler{pool, meta, ctx, copy}
+func (h *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string, ctx context.Context, copy ...ctxCopyFunc) {
+	handler := &grpcHandler{pool, meta, ctx, copy}
 	fakeDesc := &grpc.ServiceDesc{
 		ServiceName: serviceName,
 		HandlerType: (*any)(nil),
@@ -157,20 +157,20 @@ func (p *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, m
 		}
 		switch parts[0] {
 		case "u":
-			d.Handler = h.handler(newHandlerFactoryUnary(p))
+			d.Handler = handler.handle(newHandlerFactoryUnary(h))
 		case "c":
-			d.Handler = h.handler(newHandlerFactoryClientStream(p))
+			d.Handler = handler.handle(newHandlerFactoryClientStream(h))
 		case "s":
-			d.Handler = h.handler(newHandlerFactoryServerStream(p))
+			d.Handler = handler.handle(newHandlerFactoryServerStream(h))
 		case "b":
-			d.Handler = h.handler(newHandlerFactoryBidirectionalStream(p))
+			d.Handler = handler.handle(newHandlerFactoryBidirectionalStream(h))
 		}
 		fakeDesc.Streams = append(fakeDesc.Streams, d)
 	}
-	s.RegisterService(fakeDesc, h)
+	s.RegisterService(fakeDesc, handler)
 }
 
-func (p *hostModule) Stop() (err error) {
+func (h *hostModule) Stop() (err error) {
 	return
 }
 

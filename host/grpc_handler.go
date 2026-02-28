@@ -22,7 +22,7 @@ type grpcHandler struct {
 	init []ctxCopyFunc
 }
 
-func (h *grpcHandler) handler(f handlerFactory) func(srv any, serverStream grpc.ServerStream) error {
+func (h *grpcHandler) handle(f handlerFactory) func(srv any, serverStream grpc.ServerStream) error {
 	return func(srv any, serverStream grpc.ServerStream) error {
 		fullMethodName, ok := grpc.MethodFromServerStream(serverStream)
 		if !ok {
