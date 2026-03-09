@@ -116,8 +116,12 @@ func (h *hostModule) InitContext(ctx context.Context, m api.Module) (context.Con
 // ContextCopy populates dst context with the meta page from src context.
 func (h *hostModule) ContextCopy(dst, src context.Context) context.Context {
 	dst = context.WithValue(dst, ctxKeyMeta, get[*meta](src, ctxKeyMeta))
-	dst = context.WithValue(dst, ctxKeyNext, get[chan []byte](src, ctxKeyNext))
-	dst = context.WithValue(dst, ctxKeySend, get[func([]byte, error)](src, ctxKeySend))
+	if v := src.Value(ctxKeyNext); v != nil {
+		dst = context.WithValue(dst, ctxKeyNext, v.(chan []byte))
+	}
+	if v := src.Value(ctxKeySend); v != nil {
+		dst = context.WithValue(dst, ctxKeySend, v.(func([]byte, error)))
+	}
 	return dst
 }
 
