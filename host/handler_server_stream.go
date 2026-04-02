@@ -21,7 +21,13 @@ type msgErr struct {
 
 func newHandlerFactoryServerStream(m *hostModule) handlerFactory {
 	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
-		s := &handlerServerStream{ctx, pool, meta, method, make(chan msgErr)}
+		s := &handlerServerStream{
+			ctx:    ctx,
+			data:   make(chan msgErr),
+			meta:   meta,
+			method: method,
+			pool:   pool,
+		}
 		s.ctx = context.WithValue(s.ctx, ctxKeyMeta, meta)
 		s.ctx = context.WithValue(s.ctx, ctxKeySend, s.send)
 		return s
@@ -30,10 +36,10 @@ func newHandlerFactoryServerStream(m *hostModule) handlerFactory {
 
 type handlerServerStream struct {
 	ctx    context.Context
-	pool   wazeropool.Instance
+	data   chan msgErr
 	meta   *meta
 	method string
-	data   chan msgErr
+	pool   wazeropool.Instance
 }
 
 func (h *handlerServerStream) Header() (md metadata.MD, err error) {
@@ -45,6 +51,10 @@ func (h *handlerServerStream) Trailer() (md metadata.MD) {
 }
 
 func (h *handlerServerStream) CloseSend() (err error) {
+	h.pool.Run(func(mod api.Module) {
+		setMethod(mod, h.meta, []byte(h.method))
+		mod.ExportedFunction("__grpc_server_server_stream_close").Call(h.ctx)
+	})
 	close(h.data)
 	return
 }
@@ -68,7 +78,7 @@ func (h *handlerServerStream) SendMsg(m any) (err error) {
 	h.pool.Run(func(mod api.Module) {
 		setMethod(mod, h.meta, []byte(h.method))
 		setMsg(mod, h.meta, msg)
-		mod.ExportedFunction("__grpc_server_server_stream").Call(h.ctx)
+		mod.ExportedFunction("__grpc_server_server_stream_open").Call(h.ctx)
 	})
 	return
 }

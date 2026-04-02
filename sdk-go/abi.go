@@ -6,6 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/pantopic/wazero-grpc-server/sdk-go/codes"
+	"github.com/pantopic/wazero-grpc-server/sdk-go/status"
 )
 
 var (
@@ -41,10 +42,10 @@ func __grpc_server() (res uint32) {
 		for k := range services[name].unary {
 			methods = append(methods, `u.`+k)
 		}
-		for k := range services[name].clientStream {
+		for k := range services[name].clientStreamOpen {
 			methods = append(methods, `c.`+k)
 		}
-		for k := range services[name].serverStream {
+		for k := range services[name].serverStreamOpen {
 			methods = append(methods, `s.`+k)
 		}
 		for k := range services[name].bidirectionalRecv {
@@ -95,77 +96,101 @@ func __grpc_server_unary() {
 		errCode = codes.Unimplemented
 		return
 	}
-	b, err := h(getMsg())
-	if err != nil {
-		if err2, ok := err.(Error); ok {
-			errCode = err2.Code()
-			setMsg([]byte(err2.Message()))
-		} else {
-			errCode = codes.Unknown
-			setMsg([]byte(err.Error()))
-		}
+	err := h(getMsg())
+	if check(err) {
 		return
 	}
 	errCode = codes.OK
-	setMsg(b)
 }
 
-//export __grpc_server_client_stream
-func __grpc_server_client_stream() {
+//export __grpc_server_client_stream_open
+func __grpc_server_client_stream_open() {
 	service, method := getCallOpts()
-	h, ok := service.clientStream[method]
+	h, ok := service.clientStreamOpen[method]
 	if !ok {
 		errCode = codes.Unimplemented
 		return
 	}
-	b, err := h(func(yield func([]byte) bool) {
-		for {
-			if errCode != codes.OK {
-				return
-			}
-			m := getMsg()
-			if !yield(m) {
-				return
-			}
-			grpcRecv()
-		}
-	})
-	if err != nil {
-		if err, ok := err.(Error); ok {
-			errCode = err.Code()
-		} else {
-			errCode = codes.Unknown
-		}
-		setMsg([]byte(err.Error()))
+	err := h()
+	if check(err) {
 		return
 	}
 	errCode = codes.OK
-	setMsg(b)
 }
 
-//export __grpc_server_server_stream
-func __grpc_server_server_stream() {
+//export __grpc_server_client_stream_recv
+func __grpc_server_client_stream_recv() {
 	service, method := getCallOpts()
-	h, ok := service.serverStream[method]
+	h, ok := service.clientStreamRecv[method]
 	if !ok {
 		errCode = codes.Unimplemented
 		return
 	}
-	all, err := h(getMsg())
-	if err != nil {
-		if err, ok := err.(Error); ok {
-			errCode = err.Code()
-		} else {
-			errCode = codes.Unknown
-		}
-		setMsg([]byte(err.Error()))
+	err := h(getMsg())
+	if check(err) {
 		return
 	}
 	errCode = codes.OK
-	for m := range all {
-		setMsg(m)
-		grpcSend()
+}
+
+//export __grpc_server_client_stream_close
+func __grpc_server_client_stream_close() {
+	service, method := getCallOpts()
+	h, ok := service.clientStreamClose[method]
+	if !ok {
+		errCode = codes.Unimplemented
+		return
 	}
+	err := h()
+	if check(err) {
+		return
+	}
+	errCode = codes.OK
+}
+
+//export __grpc_server_server_stream_open
+func __grpc_server_server_stream_open() {
+	service, method := getCallOpts()
+	h, ok := service.serverStreamOpen[method]
+	if !ok {
+		errCode = codes.Unimplemented
+		return
+	}
+	err := h(getMsg())
+	if check(err) {
+		return
+	}
+	errCode = codes.OK
+}
+
+//export __grpc_server_server_stream_close
+func __grpc_server_server_stream_close() {
+	service, method := getCallOpts()
+	h, ok := service.serverStreamClose[method]
+	if !ok {
+		errCode = codes.Unimplemented
+		return
+	}
+	err := h()
+	if check(err) {
+		return
+	}
+	errCode = codes.OK
+}
+
+//export __grpc_server_bidirectional_open
+func __grpc_server_bidirectional_open() {
+	service, method := getCallOpts()
+	h, ok := service.bidirectionalOpen[method]
+	if !ok {
+		errCode = codes.Unimplemented
+		return
+	}
+	err := h()
+	if check(err) {
+		return
+	}
+	errCode = codes.OK
 }
 
 //export __grpc_server_bidirectional_recv
@@ -176,66 +201,67 @@ func __grpc_server_bidirectional_recv() {
 		errCode = codes.Unimplemented
 		return
 	}
-	err := h(func(yield func([]byte) bool) {
-		for {
-			grpcRecv()
-			if errCode != codes.OK {
-				return
-			}
-			if !yield(getMsg()) {
-				return
-			}
-		}
-	})
-	if err != nil {
-		if err, ok := err.(Error); ok {
-			errCode = err.Code()
-		} else {
-			errCode = codes.Unknown
-		}
-		setMsg([]byte(err.Error()))
+	err := h(getMsg())
+	if check(err) {
 		return
 	}
 	errCode = codes.OK
 }
 
-//export __grpc_server_bidirectional_send
-func __grpc_server_bidirectional_send() {
+//export __grpc_server_bidirectional_close
+func __grpc_server_bidirectional_close() {
 	service, method := getCallOpts()
-	h, ok := service.bidirectionalSend[method]
+	h, ok := service.bidirectionalClose[method]
 	if !ok {
 		errCode = codes.Unimplemented
 		return
 	}
-	all, err := h()
-	if err != nil {
-		if err, ok := err.(Error); ok {
-			errCode = err.Code()
-		} else {
-			errCode = codes.Unknown
-		}
-		setMsg([]byte(err.Error()))
+	err := h()
+	if check(err) {
 		return
 	}
 	errCode = codes.OK
-	for m := range all {
-		setMsg(m)
-		grpcSend()
-	}
 }
 
 //go:wasm-module pantopic/wazero-grpc-server
 //export __grpc_server_send
-func grpcSend()
+func send()
 
 //go:wasm-module pantopic/wazero-grpc-server
-//export __grpc_server_recv
-func grpcRecv()
+//export __grpc_server_close
+// func close()
 
 // Fix for lint rule `unusedfunc`
 var _ = __grpc_server
 var _ = __grpc_server_unary
-var _ = __grpc_server_client_stream
-var _ = __grpc_server_server_stream
+var _ = __grpc_server_client_stream_open
+var _ = __grpc_server_client_stream_recv
+var _ = __grpc_server_client_stream_close
+var _ = __grpc_server_server_stream_open
+var _ = __grpc_server_server_stream_close
+var _ = __grpc_server_bidirectional_open
 var _ = __grpc_server_bidirectional_recv
-var _ = __grpc_server_bidirectional_send
+var _ = __grpc_server_bidirectional_close
+
+func check(err error) bool {
+	if err == nil {
+		return false
+	}
+	if err, ok := err.(Error); ok {
+		errCode = err.Code()
+	} else {
+		errCode = codes.Unknown
+	}
+	setMsg([]byte(err.Error()))
+	return true
+}
+
+func getErr() (err error) {
+	if errCode == codes.OK {
+		return
+	}
+	return status.New(
+		errCode,
+		string(getMsg()),
+	).Err()
+}

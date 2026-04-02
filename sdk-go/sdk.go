@@ -1,30 +1,42 @@
 package grpc_server
 
 import (
-	"iter"
+	"github.com/pantopic/wazero-grpc-server/sdk-go/codes"
 )
 
 type Service struct {
-	unary             map[string]unary
-	clientStream      map[string]clientStream
-	serverStream      map[string]serverStream
-	bidirectionalRecv map[string]bidirectionalRecv
-	bidirectionalSend map[string]bidirectionalSend
+	unary              map[string]unary
+	clientStreamOpen   map[string]clientStreamOpen
+	clientStreamRecv   map[string]clientStreamRecv
+	clientStreamClose  map[string]clientStreamClose
+	serverStreamOpen   map[string]serverStreamOpen
+	serverStreamClose  map[string]serverStreamClose
+	bidirectionalOpen  map[string]bidirectionalOpen
+	bidirectionalRecv  map[string]bidirectionalRecv
+	bidirectionalClose map[string]bidirectionalClose
 }
 
-type unary func([]byte) ([]byte, error)
-type clientStream func(iter.Seq[[]byte]) ([]byte, error)
-type serverStream func([]byte) (iter.Seq[[]byte], error)
-type bidirectionalRecv func(iter.Seq[[]byte]) error
-type bidirectionalSend func() (iter.Seq[[]byte], error)
+type unary func([]byte) error
+type clientStreamOpen func() error
+type clientStreamRecv func([]byte) error
+type clientStreamClose func() error
+type serverStreamOpen func([]byte) error
+type serverStreamClose func() error
+type bidirectionalOpen func() error
+type bidirectionalRecv func([]byte) error
+type bidirectionalClose func() error
 
 func NewService(name string) *Service {
 	services[name] = &Service{
-		unary:             make(map[string]unary),
-		clientStream:      make(map[string]clientStream),
-		serverStream:      make(map[string]serverStream),
-		bidirectionalRecv: make(map[string]bidirectionalRecv),
-		bidirectionalSend: make(map[string]bidirectionalSend),
+		unary:              make(map[string]unary),
+		clientStreamOpen:   make(map[string]clientStreamOpen),
+		clientStreamRecv:   make(map[string]clientStreamRecv),
+		clientStreamClose:  make(map[string]clientStreamClose),
+		serverStreamOpen:   make(map[string]serverStreamOpen),
+		serverStreamClose:  make(map[string]serverStreamClose),
+		bidirectionalOpen:  make(map[string]bidirectionalOpen),
+		bidirectionalRecv:  make(map[string]bidirectionalRecv),
+		bidirectionalClose: make(map[string]bidirectionalClose),
 	}
 	return services[name]
 }
@@ -34,18 +46,56 @@ func (s *Service) Unary(name string, fn unary) *Service {
 	return s
 }
 
-func (s *Service) ClientStream(name string, fn clientStream) *Service {
-	s.clientStream[name] = fn
+func (s *Service) ClientStream(name string,
+	open clientStreamOpen,
+	recv clientStreamRecv,
+	close clientStreamClose,
+) *Service {
+	s.clientStreamOpen[name] = open
+	s.clientStreamRecv[name] = recv
+	s.clientStreamClose[name] = close
 	return s
 }
 
-func (s *Service) ServerStream(name string, fn serverStream) *Service {
-	s.serverStream[name] = fn
+func (s *Service) ServerStream(name string,
+	open serverStreamOpen,
+	close serverStreamClose,
+) *Service {
+	s.serverStreamOpen[name] = open
+	s.serverStreamClose[name] = close
 	return s
 }
 
-func (s *Service) BidirectionalStream(name string, recv bidirectionalRecv, send bidirectionalSend) *Service {
+func (s *Service) BidirectionalStream(name string,
+	open bidirectionalOpen,
+	recv bidirectionalRecv,
+	close bidirectionalClose,
+) *Service {
 	s.bidirectionalRecv[name] = recv
-	s.bidirectionalSend[name] = send
+	s.bidirectionalOpen[name] = open
+	s.bidirectionalClose[name] = close
 	return s
 }
+
+func Send(b []byte) (err error) {
+	errCode = codes.OK
+	setMsg(b)
+	send()
+	err = getErr()
+	return
+}
+
+func SendErr(c codes.Code, b []byte) (err error) {
+	errCode = c
+	setMsg(b)
+	send()
+	err = getErr()
+	return
+}
+
+// func Close() (err error) {
+// 	errCode = codes.OK
+// 	close()
+// 	err = getErr()
+// 	return
+// }

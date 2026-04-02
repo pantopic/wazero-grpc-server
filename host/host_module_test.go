@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/pantopic/wazero-pipe/host"
+	"github.com/pantopic/wazero-atomic/host"
 	"github.com/pantopic/wazero-pool"
 
 	"github.com/pantopic/wazero-grpc-server/host/pb"
@@ -43,8 +43,8 @@ func TestHostModule(t *testing.T) {
 		hostModule = New()
 		hostModule.Register(ctx, r)
 	})
-	pipeModule := wazero_pipe.New()
-	pipeModule.Register(ctx, r)
+	modAtomic := wazero_atomic.New()
+	modAtomic.Register(ctx, r)
 
 	port := 9000
 	for _, tc := range []struct {
@@ -69,12 +69,12 @@ func TestHostModule(t *testing.T) {
 				if err != nil {
 					t.Fatalf(`%v`, err)
 				}
-				ctx, err = pipeModule.InitContext(ctx, mod)
+				ctx, err = modAtomic.InitContext(ctx, mod)
 				if err != nil {
 					t.Fatalf(`%v`, err)
 				}
 			})
-			err = hostModule.RegisterServices(ctx, s, pool, pipeModule.ContextCopy)
+			err = hostModule.RegisterServices(ctx, s, pool, modAtomic.ContextCopy)
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}

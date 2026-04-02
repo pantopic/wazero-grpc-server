@@ -15,16 +15,25 @@ import (
 
 func newHandlerFactoryUnary(_ *hostModule) handlerFactory {
 	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
-		return &handlerUnary{ctx, pool, meta, method, make(chan resp, 10)}
+		s := &handlerUnary{
+			ctx:    ctx,
+			meta:   meta,
+			method: method,
+			pool:   pool,
+			data:   make(chan resp),
+		}
+		s.ctx = context.WithValue(s.ctx, ctxKeyMeta, meta)
+		s.ctx = context.WithValue(s.ctx, ctxKeySend, s.send)
+		return s
 	}
 }
 
 type handlerUnary struct {
 	ctx    context.Context
-	pool   wazeropool.Instance
 	meta   *meta
 	method string
-	send   chan resp
+	pool   wazeropool.Instance
+	data   chan resp
 }
 
 type resp struct {
@@ -48,12 +57,15 @@ func (h *handlerUnary) Context() context.Context {
 	return h.ctx
 }
 
+func (h *handlerUnary) send(msg []byte, err error) {
+	h.data <- resp{msg, err}
+}
+
 func (h *handlerUnary) SendMsg(m any) (err error) {
 	data, err := proto.Marshal(m.(proto.Message))
 	if err != nil {
 		panic(err)
 	}
-	var r resp
 	h.pool.Run(func(mod api.Module) {
 		setMethod(mod, h.meta, []byte(h.method))
 		setMsg(mod, h.meta, data)
@@ -61,22 +73,17 @@ func (h *handlerUnary) SendMsg(m any) (err error) {
 		if _, err = mod.ExportedFunction("__grpc_server_unary").Call(h.ctx); err != nil {
 			return
 		}
-		r.err = getError(mod, h.meta)
-		if r.err == nil {
-			r.data = append(r.data, getMsg(mod, h.meta)...)
-		}
 	})
-	h.send <- r
 	return
 }
 
 func (h *handlerUnary) RecvMsg(m any) (err error) {
 	select {
-	case resp, ok := <-h.send:
+	case resp, ok := <-h.data:
 		if !ok {
 			return io.EOF
 		}
-		close(h.send)
+		close(h.data)
 		if resp.err != nil {
 			return resp.err
 		}
