@@ -65,7 +65,6 @@ func (h *handlerBidirectionalStream) CloseSend() (err error) {
 		}
 		err = getError(mod, h.meta)
 	})
-	close(h.data)
 	return
 }
 
@@ -131,7 +130,6 @@ func (h *handlerBidirectionalStream) RecvMsg(m any) (err error) {
 			slog.Info(`RecvMsg`, `err`, err, `data`, d.msg)
 			log.Fatalf(`Unable to unmarshal message in RecvMsg: %v`, err)
 		}
-	case <-h.ctx.Done():
 	}
 	return
 }
