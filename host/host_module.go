@@ -58,30 +58,15 @@ func (h *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 		builder = builder.NewFunctionBuilder().WithGoModuleFunction(api.GoModuleFunc(fn), nil, nil).Export(name)
 	}
 	for name, fn := range map[string]any{
-		"__grpc_server_recv": func(next chan []byte) (msg []byte, ok bool) {
-			msg, ok = <-next
-			return
-		},
 		"__grpc_server_send": func(ctx context.Context, msg []byte, err error) {
 			get[func([]byte, error)](ctx, ctxKeySend)(msg, err)
 		},
 	} {
 		switch fn := fn.(type) {
-		case func(next chan []byte) ([]byte, bool):
-			register(name, func(ctx context.Context, m api.Module, stack []uint64) {
-				meta := get[*meta](ctx, ctxKeyMeta)
-				b, ok := fn(get[chan []byte](ctx, ctxKeyNext))
-				if !ok {
-					setErrCode(m, meta, codes.Canceled)
-					return
-				}
-				setErrCode(m, meta, codes.OK)
-				setMsg(m, meta, b)
-			})
 		case func(context.Context, []byte, error):
 			register(name, func(ctx context.Context, m api.Module, stack []uint64) {
 				meta := get[*meta](ctx, ctxKeyMeta)
-				fn(ctx, getMsg(m, meta), getError(m, meta))
+				fn(ctx, getMsgCopy(m, meta), getError(m, meta))
 			})
 		default:
 			log.Panicf("Method signature implementation missing: %#v", fn)
@@ -205,6 +190,10 @@ func setMethod(m api.Module, meta *meta, method []byte) {
 
 func getMsg(m api.Module, meta *meta) []byte {
 	return read(m, meta.ptrMsg, meta.ptrMsgLen, meta.ptrMsgCap)
+}
+
+func getMsgCopy(m api.Module, meta *meta) []byte {
+	return append([]byte(nil), getMsg(m, meta)...)
 }
 
 func msgBuf(m api.Module, meta *meta) []byte {

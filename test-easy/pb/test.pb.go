@@ -18,6 +18,10 @@ type TestRequest struct {
 	Foo uint64
 }
 
+func (tr *TestRequest) Reset() {
+	tr.Foo = 0
+}
+
 func (tr *TestRequest) Marshal(dst []byte) []byte {
 	m := mp.Get()
 	tr.marshal(m.MessageMarshaler())
@@ -45,6 +49,10 @@ func (tr *TestRequest) Unmarshal(src []byte) (err error) {
 
 type TestResponse struct {
 	Bar uint64
+}
+
+func (tr *TestResponse) Reset() {
+	tr.Bar = 0
 }
 
 func (tr *TestResponse) Marshal(dst []byte) []byte {
@@ -76,6 +84,10 @@ type RetestRequest struct {
 	Bar uint64
 }
 
+func (rr *RetestRequest) Reset() {
+	rr.Bar = 0
+}
+
 func (tr *RetestRequest) Marshal(dst []byte) []byte {
 	m := mp.Get()
 	tr.marshal(m.MessageMarshaler())
@@ -103,6 +115,10 @@ func (tr *RetestRequest) Unmarshal(src []byte) (err error) {
 
 type RetestResponse struct {
 	Foo uint64
+}
+
+func (rr *RetestResponse) Reset() {
+	rr.Foo = 0
 }
 
 func (tr *RetestResponse) Marshal(dst []byte) []byte {
@@ -133,6 +149,11 @@ func (tr *RetestResponse) Unmarshal(src []byte) (err error) {
 type TestBytesRequest struct {
 	Key []byte
 	Val []byte
+}
+
+func (tbr *TestBytesRequest) Reset() {
+	tbr.Key = tbr.Key[:0]
+	tbr.Val = tbr.Val[:0]
 }
 
 func (tr *TestBytesRequest) Marshal(dst []byte) []byte {
@@ -169,6 +190,11 @@ type TestBytesResponse struct {
 	Data []byte
 }
 
+func (tbr *TestBytesResponse) Reset() {
+	tbr.Code = 0
+	tbr.Data = tbr.Data[:0]
+}
+
 func (tr *TestBytesResponse) Marshal(dst []byte) []byte {
 	m := mp.Get()
 	tr.marshal(m.MessageMarshaler())
@@ -202,6 +228,10 @@ type ClientStreamRequest struct {
 	Foo2 uint64
 }
 
+func (csr *ClientStreamRequest) Reset() {
+	csr.Foo2 = 0
+}
+
 func (tr *ClientStreamRequest) Marshal(dst []byte) []byte {
 	m := mp.Get()
 	tr.marshal(m.MessageMarshaler())
@@ -229,6 +259,10 @@ func (tr *ClientStreamRequest) Unmarshal(src []byte) (err error) {
 
 type ClientStreamResponse struct {
 	Bar2 uint64
+}
+
+func (csr *ClientStreamResponse) Reset() {
+	csr.Bar2 = 0
 }
 
 func (tr *ClientStreamResponse) Marshal(dst []byte) []byte {
@@ -260,6 +294,10 @@ type ServerStreamRequest struct {
 	Foo3 uint64
 }
 
+func (ssr *ServerStreamRequest) Reset() {
+	ssr.Foo3 = 0
+}
+
 func (tr *ServerStreamRequest) Marshal(dst []byte) []byte {
 	m := mp.Get()
 	tr.marshal(m.MessageMarshaler())
@@ -287,6 +325,10 @@ func (tr *ServerStreamRequest) Unmarshal(src []byte) (err error) {
 
 type ServerStreamResponse struct {
 	Bar3 uint64
+}
+
+func (ssr *ServerStreamResponse) Reset() {
+	ssr.Bar3 = 0
 }
 
 func (tr *ServerStreamResponse) Marshal(dst []byte) []byte {
@@ -318,6 +360,10 @@ type BidirectionalStreamRequest struct {
 	Foo4 uint64
 }
 
+func (bsr *BidirectionalStreamRequest) Reset() {
+	bsr.Foo4 = 0
+}
+
 func (tr *BidirectionalStreamRequest) Marshal(dst []byte) []byte {
 	m := mp.Get()
 	tr.marshal(m.MessageMarshaler())
@@ -345,6 +391,10 @@ func (tr *BidirectionalStreamRequest) Unmarshal(src []byte) (err error) {
 
 type BidirectionalStreamResponse struct {
 	Bar4 uint64
+}
+
+func (bsr *BidirectionalStreamResponse) Reset() {
+	bsr.Bar4 = 0
 }
 
 func (tr *BidirectionalStreamResponse) Marshal(dst []byte) []byte {

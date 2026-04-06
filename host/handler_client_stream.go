@@ -16,10 +16,16 @@ import (
 
 func newHandlerFactoryClientStream(m *hostModule) handlerFactory {
 	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
-		next := make(chan []byte)
-		ctx = context.WithValue(ctx, ctxKeyMeta, meta)
-		ctx = context.WithValue(ctx, ctxKeyNext, next)
-		return &handlerClientStream{ctx, pool, meta, method, make(chan resp), next, false}
+		s := &handlerClientStream{
+			ctx:    ctx,
+			data:   make(chan resp),
+			meta:   meta,
+			method: method,
+			pool:   pool,
+		}
+		s.ctx = context.WithValue(s.ctx, ctxKeyMeta, meta)
+		s.ctx = context.WithValue(s.ctx, ctxKeySend, s.send)
+		return s
 	}
 }
 
@@ -28,8 +34,7 @@ type handlerClientStream struct {
 	pool   wazeropool.Instance
 	meta   *meta
 	method string
-	send   chan resp
-	next   chan []byte
+	data   chan resp
 	init   bool
 }
 
@@ -42,7 +47,10 @@ func (h *handlerClientStream) Trailer() (md metadata.MD) {
 }
 
 func (h *handlerClientStream) CloseSend() (err error) {
-	close(h.next)
+	h.pool.Run(func(mod api.Module) {
+		setMethod(mod, h.meta, []byte(h.method))
+		mod.ExportedFunction("__grpc_server_client_stream_close").Call(h.ctx)
+	})
 	return
 }
 
@@ -50,44 +58,44 @@ func (h *handlerClientStream) Context() context.Context {
 	return h.ctx
 }
 
+func (h *handlerClientStream) send(msg []byte, err error) {
+	h.data <- resp{msg, err}
+}
+
 func (h *handlerClientStream) SendMsg(m any) (err error) {
 	msg, err := proto.Marshal(m.(proto.Message))
 	if err != nil {
 		panic(err)
 	}
-	if !h.init {
-		h.init = true
-		go func() {
-			var r resp
-			h.pool.Run(func(mod api.Module) {
-				// Special case for first message
-				setMethod(mod, h.meta, []byte(h.method))
-				setMsg(mod, h.meta, msg)
-				setErrCode(mod, h.meta, codes.OK)
-				_, err := mod.ExportedFunction("__grpc_server_client_stream").Call(h.ctx)
-				if err != nil {
-					log.Println(err)
-				}
-				r.err = getError(mod, h.meta)
-				if r.err == nil {
-					r.data = append(r.data, getMsg(mod, h.meta)...)
-				}
-			})
-			h.send <- r
-		}()
-	} else {
-		h.next <- msg
-	}
+	h.pool.Run(func(mod api.Module) {
+		// Special case for first message
+		setMethod(mod, h.meta, []byte(h.method))
+		setErrCode(mod, h.meta, codes.OK)
+		if !h.init {
+			h.init = true
+			_, err := mod.ExportedFunction("__grpc_server_client_stream_open").Call(h.ctx)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+		}
+		setMsg(mod, h.meta, msg)
+		_, err := mod.ExportedFunction("__grpc_server_client_stream_recv").Call(h.ctx)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	})
 	return
 }
 
 func (h *handlerClientStream) RecvMsg(m any) (err error) {
 	select {
-	case r, ok := <-h.send:
+	case r, ok := <-h.data:
 		if !ok {
 			return io.EOF
 		}
-		close(h.send)
+		close(h.data)
 		if r.err != nil {
 			return r.err
 		}

@@ -18,25 +18,30 @@ import (
 
 func newHandlerFactoryBidirectionalStream(m *hostModule) handlerFactory {
 	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
-		next := make(chan []byte)
-		s := &handlerBidirectionalStream{ctx, pool, meta, method, make(chan resp), make(chan msgErr), next, false, false}
+		s := &handlerBidirectionalStream{
+			ctx:    ctx,
+			data:   make(chan msgErr),
+			meta:   meta,
+			method: method,
+			pool:   pool,
+		}
 		s.ctx = context.WithValue(s.ctx, ctxKeyMeta, meta)
-		s.ctx = context.WithValue(s.ctx, ctxKeyNext, next)
 		s.ctx = context.WithValue(s.ctx, ctxKeySend, s.send)
+		go func() {
+			<-s.ctx.Done()
+			s.CloseSend()
+		}()
 		return s
 	}
 }
 
 type handlerBidirectionalStream struct {
-	ctx      context.Context
-	pool     wazeropool.Instance
-	meta     *meta
-	method   string
-	chanSend chan resp
-	data     chan msgErr
-	next     chan []byte
-	initSend bool
-	initRecv bool
+	ctx    context.Context
+	data   chan msgErr
+	meta   *meta
+	method string
+	open   bool
+	pool   wazeropool.Instance
 }
 
 func (h *handlerBidirectionalStream) Header() (md metadata.MD, err error) {
@@ -48,7 +53,18 @@ func (h *handlerBidirectionalStream) Trailer() (md metadata.MD) {
 }
 
 func (h *handlerBidirectionalStream) CloseSend() (err error) {
-	close(h.next)
+	slog.Info(`CloseSend`)
+	h.pool.Run(func(mod api.Module) {
+		setMethod(mod, h.meta, []byte(h.method))
+		setErrCode(mod, h.meta, codes.OK)
+		fn := "__grpc_server_bidirectional_close"
+		_, err = mod.ExportedFunction(fn).Call(h.ctx)
+		if err != nil {
+			slog.Info(fn, `err`, err)
+			return
+		}
+		err = getError(mod, h.meta)
+	})
 	return
 }
 
@@ -59,29 +75,33 @@ func (h *handlerBidirectionalStream) Context() context.Context {
 func (h *handlerBidirectionalStream) SendMsg(m any) (err error) {
 	msg, err := proto.Marshal(m.(proto.Message))
 	if err != nil {
-		panic(err)
+		panic(`Unable to marshal message in SendMsg: ` + err.Error())
 	}
-	if !h.initSend {
-		h.initSend = true
-		go func() {
-			var err error
-			// Start recv module instance
-			h.pool.Run(func(mod api.Module) {
-				setMethod(mod, h.meta, []byte(h.method))
-				setErrCode(mod, h.meta, codes.OK)
-				_, err = mod.ExportedFunction("__grpc_server_bidirectional_recv").Call(h.ctx)
-				if err != nil {
-					slog.Info(`SendMsg`, `err`, err)
-				}
-				err = getError(mod, h.meta)
-			})
+	h.pool.Run(func(mod api.Module) {
+		setMethod(mod, h.meta, []byte(h.method))
+		setErrCode(mod, h.meta, codes.OK)
+		if !h.open {
+			h.open = true
+			fn := "__grpc_server_bidirectional_open"
+			_, err = mod.ExportedFunction(fn).Call(h.ctx)
 			if err != nil {
-				slog.Info(`SendMsg`, `err`, err)
-				h.send(nil, err)
+				slog.Info(fn, `err`, err)
+				return
 			}
-		}()
-	}
-	h.next <- msg
+			err = getError(mod, h.meta)
+			if err != nil {
+				return
+			}
+		}
+		setMsg(mod, h.meta, msg)
+		fn := "__grpc_server_bidirectional_recv"
+		_, err = mod.ExportedFunction(fn).Call(h.ctx)
+		if err != nil {
+			slog.Info(fn, `err`, err)
+			return
+		}
+		err = getError(mod, h.meta)
+	})
 	return
 }
 
@@ -93,25 +113,6 @@ func (h *handlerBidirectionalStream) send(msg []byte, err error) {
 }
 
 func (h *handlerBidirectionalStream) RecvMsg(m any) (err error) {
-	if !h.initRecv {
-		h.initRecv = true
-		go func() {
-			var r msgErr
-			// Start send module instance
-			h.pool.Run(func(mod api.Module) {
-				setMethod(mod, h.meta, []byte(h.method))
-				setErrCode(mod, h.meta, codes.OK)
-				_, err := mod.ExportedFunction("__grpc_server_bidirectional_send").Call(h.ctx)
-				if err != nil {
-					log.Println(err)
-				}
-				r.err = getError(mod, h.meta)
-			})
-			if r.err != nil {
-				h.send(nil, err)
-			}
-		}()
-	}
 	select {
 	case d, ok := <-h.data:
 		if !ok {
@@ -127,9 +128,8 @@ func (h *handlerBidirectionalStream) RecvMsg(m any) (err error) {
 		err = proto.Unmarshal(d.msg, m.(proto.Message))
 		if err != nil {
 			slog.Info(`RecvMsg`, `err`, err, `data`, d.msg)
-			log.Fatalf(`%#v`, m)
+			log.Fatalf(`Unable to unmarshal message in RecvMsg: %v`, err)
 		}
-	case <-h.ctx.Done():
 	}
 	return
 }
