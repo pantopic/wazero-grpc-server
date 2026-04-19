@@ -48,13 +48,15 @@ func TestHostModule(t *testing.T) {
 
 	port := 9000
 	for _, tc := range []struct {
-		name string
-		wasm []byte
+		name         string
+		wasm         []byte
+		bufCapMethod uint32
+		bufCapMsg    uint32
 	}{
-		{`testWasmEasy`, testWasmEasy},
-		{`testWasmLite`, testWasmLite},
-		{`testWasmEasyProd`, testWasmEasyProd},
-		{`testWasmLiteProd`, testWasmLiteProd},
+		{`testWasmEasy`, testWasmEasy, 256, 1 * 1024 * 1024},
+		{`testWasmLite`, testWasmLite, 128, 1.5 * 1024 * 1024},
+		{`testWasmEasyProd`, testWasmEasyProd, 256, 1 * 1024 * 1024},
+		{`testWasmLiteProd`, testWasmLiteProd, 128, 1.5 * 1024 * 1024},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s := grpc.NewServer()
@@ -74,16 +76,16 @@ func TestHostModule(t *testing.T) {
 					t.Fatalf(`%v`, err)
 				}
 			})
-			err = hostModule.RegisterServices(ctx, s, pool, modAtomic.ContextCopy)
+			err = hostModule.RegisterServices(ctx, s, pool, modAtomic)
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
 			pool.Run(func(mod api.Module) {
 				meta := get[*meta](ctx, ctxKeyMeta)
-				if readUint32(mod, meta.ptrMethodCap) != 256 {
+				if readUint32(mod, meta.ptrMethodCap) != tc.bufCapMethod {
 					t.Errorf("incorrect maximum method length: %#v", meta)
 				}
-				if readUint32(mod, meta.ptrMsgCap) != 1.5*1024*1024 {
+				if readUint32(mod, meta.ptrMsgCap) != tc.bufCapMsg {
 					t.Errorf("incorrect maximum method length: %#v", meta)
 				}
 			})

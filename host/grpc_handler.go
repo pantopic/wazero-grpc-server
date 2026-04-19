@@ -19,7 +19,7 @@ type grpcHandler struct {
 	pool wazeropool.Instance
 	meta *meta
 	ctx  context.Context
-	init []ctxCopyFunc
+	init []ContextCopier
 }
 
 func (h *grpcHandler) handle(f handlerFactory) func(srv any, serverStream grpc.ServerStream) error {
@@ -30,8 +30,8 @@ func (h *grpcHandler) handle(f handlerFactory) func(srv any, serverStream grpc.S
 		}
 		ctx, cancel := context.WithCancel(serverStream.Context())
 		defer cancel()
-		for _, f := range h.init {
-			ctx = f(ctx, h.ctx)
+		for _, cc := range h.init {
+			ctx = cc.ContextCopy(ctx, h.ctx)
 		}
 		clientStream := f(ctx, h.pool, h.meta, fullMethodName)
 		errChanInbound := h.forwardInbound(serverStream, clientStream)
@@ -42,7 +42,6 @@ func (h *grpcHandler) handle(f handlerFactory) func(srv any, serverStream grpc.S
 				if errInbound == io.EOF {
 					clientStream.CloseSend()
 				} else {
-					cancel()
 					return status.Errorf(codes.Internal, "failed proxying s2c: %v", errInbound)
 				}
 			case errOutbound := <-errChanOutbound:
@@ -50,6 +49,7 @@ func (h *grpcHandler) handle(f handlerFactory) func(srv any, serverStream grpc.S
 				if errOutbound != io.EOF {
 					return errOutbound
 				}
+				clientStream.CloseSend()
 				return nil
 			}
 		}

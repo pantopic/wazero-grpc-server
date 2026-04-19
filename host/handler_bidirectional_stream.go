@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"log/slog"
-	"sync"
 
 	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
@@ -16,28 +15,22 @@ import (
 	"github.com/pantopic/wazero-pool"
 )
 
-func newHandlerFactoryBidirectionalStream(m *hostModule) handlerFactory {
-	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
-		s := &handlerBidirectionalStream{
-			ctx:    ctx,
-			data:   make(chan msgErr),
-			meta:   meta,
-			method: method,
-			pool:   pool,
-		}
-		s.ctx = context.WithValue(s.ctx, ctxKeyMeta, meta)
-		s.ctx = context.WithValue(s.ctx, ctxKeySend, s.send)
-		go func() {
-			<-s.ctx.Done()
-			s.CloseSend()
-		}()
-		return s
+func handlerFactoryBidirectionalStream(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
+	s := &handlerBidirectionalStream{
+		ctx:    ctx,
+		data:   make(chan resp),
+		meta:   meta,
+		method: method,
+		pool:   pool,
 	}
+	s.ctx = context.WithValue(s.ctx, ctxKeyMeta, meta)
+	s.ctx = context.WithValue(s.ctx, ctxKeySend, s.send)
+	return s
 }
 
 type handlerBidirectionalStream struct {
 	ctx    context.Context
-	data   chan msgErr
+	data   chan resp
 	meta   *meta
 	method string
 	open   bool
@@ -53,7 +46,6 @@ func (h *handlerBidirectionalStream) Trailer() (md metadata.MD) {
 }
 
 func (h *handlerBidirectionalStream) CloseSend() (err error) {
-	slog.Info(`CloseSend`)
 	h.pool.Run(func(mod api.Module) {
 		setMethod(mod, h.meta, []byte(h.method))
 		setErrCode(mod, h.meta, codes.OK)
@@ -63,7 +55,6 @@ func (h *handlerBidirectionalStream) CloseSend() (err error) {
 			slog.Info(fn, `err`, err)
 			return
 		}
-		err = getError(mod, h.meta)
 	})
 	return
 }
@@ -88,10 +79,6 @@ func (h *handlerBidirectionalStream) SendMsg(m any) (err error) {
 				slog.Info(fn, `err`, err)
 				return
 			}
-			err = getError(mod, h.meta)
-			if err != nil {
-				return
-			}
 		}
 		setMsg(mod, h.meta, msg)
 		fn := "__grpc_server_bidirectional_recv"
@@ -100,16 +87,12 @@ func (h *handlerBidirectionalStream) SendMsg(m any) (err error) {
 			slog.Info(fn, `err`, err)
 			return
 		}
-		err = getError(mod, h.meta)
 	})
 	return
 }
 
 func (h *handlerBidirectionalStream) send(msg []byte, err error) {
-	d := msgErr{append([]byte{}, msg...), err, &sync.WaitGroup{}}
-	d.wg.Add(1)
-	h.data <- d
-	d.wg.Wait()
+	h.data <- resp{append([]byte{}, msg...), err}
 }
 
 func (h *handlerBidirectionalStream) RecvMsg(m any) (err error) {
@@ -118,18 +101,19 @@ func (h *handlerBidirectionalStream) RecvMsg(m any) (err error) {
 		if !ok {
 			return io.EOF
 		}
-		defer d.wg.Done()
 		if d.err != nil {
 			log.Printf(`data err %v`, d.err)
 			return &Error{
 				msg: d.err.Error(),
 			}
 		}
-		err = proto.Unmarshal(d.msg, m.(proto.Message))
+		err = proto.Unmarshal(d.data, m.(proto.Message))
 		if err != nil {
-			slog.Info(`RecvMsg`, `err`, err, `data`, d.msg)
+			slog.Info(`RecvMsg`, `err`, err, `data`, d.data)
 			log.Fatalf(`Unable to unmarshal message in RecvMsg: %v`, err)
 		}
+	case <-h.ctx.Done():
+		close(h.data)
 	}
 	return
 }
