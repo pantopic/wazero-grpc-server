@@ -6,20 +6,28 @@ import (
 	"unsafe"
 
 	"github.com/pantopic/wazero-grpc-server/sdk-go/codes"
-	"github.com/pantopic/wazero-grpc-server/sdk-go/status"
 )
 
 var (
-	meta             = make([]uint32, 7)
+	meta      = make([]uint32, 7)
+	errCode   codes.Code
+	method    []byte
 	methodCap uint32 = 256
 	methodLen uint32
-	msgCap    uint32 = 1.5 * 1024 * 1024
+	msg       []byte
+	msgCap    uint32 = 1 * 1024 * 1024
 	msgLen    uint32
-	errCode   codes.Code
-	method    = make([]byte, int(methodCap))
-	msg       = make([]byte, int(msgCap))
-	services  = map[string]*Service{}
+
+	services = map[string]*Service{}
 )
+
+func Init(opts ...Option) {
+	for _, opt := range opts {
+		opt()
+	}
+	method = make([]byte, int(methodCap))
+	msg = make([]byte, int(msgCap))
+}
 
 //export __grpc_server
 func __grpc_server() (res uint32) {
@@ -97,10 +105,7 @@ func __grpc_server_unary() {
 		return
 	}
 	err := h(getMsg())
-	if check(err) {
-		return
-	}
-	errCode = codes.OK
+	check(err)
 }
 
 //export __grpc_server_client_stream_open
@@ -112,10 +117,7 @@ func __grpc_server_client_stream_open() {
 		return
 	}
 	err := h()
-	if check(err) {
-		return
-	}
-	errCode = codes.OK
+	check(err)
 }
 
 //export __grpc_server_client_stream_recv
@@ -127,10 +129,7 @@ func __grpc_server_client_stream_recv() {
 		return
 	}
 	err := h(getMsg())
-	if check(err) {
-		return
-	}
-	errCode = codes.OK
+	check(err)
 }
 
 //export __grpc_server_client_stream_close
@@ -142,10 +141,7 @@ func __grpc_server_client_stream_close() {
 		return
 	}
 	err := h()
-	if check(err) {
-		return
-	}
-	errCode = codes.OK
+	check(err)
 }
 
 //export __grpc_server_server_stream_open
@@ -157,10 +153,7 @@ func __grpc_server_server_stream_open() {
 		return
 	}
 	err := h(getMsg())
-	if check(err) {
-		return
-	}
-	errCode = codes.OK
+	check(err)
 }
 
 //export __grpc_server_server_stream_close
@@ -172,10 +165,7 @@ func __grpc_server_server_stream_close() {
 		return
 	}
 	err := h()
-	if check(err) {
-		return
-	}
-	errCode = codes.OK
+	check(err)
 }
 
 //export __grpc_server_bidirectional_open
@@ -187,10 +177,7 @@ func __grpc_server_bidirectional_open() {
 		return
 	}
 	err := h()
-	if check(err) {
-		return
-	}
-	errCode = codes.OK
+	check(err)
 }
 
 //export __grpc_server_bidirectional_recv
@@ -202,10 +189,7 @@ func __grpc_server_bidirectional_recv() {
 		return
 	}
 	err := h(getMsg())
-	if check(err) {
-		return
-	}
-	errCode = codes.OK
+	check(err)
 }
 
 //export __grpc_server_bidirectional_close
@@ -217,10 +201,7 @@ func __grpc_server_bidirectional_close() {
 		return
 	}
 	err := h()
-	if check(err) {
-		return
-	}
-	errCode = codes.OK
+	check(err)
 }
 
 //go:wasm-module pantopic/wazero-grpc-server
@@ -242,26 +223,3 @@ var _ = __grpc_server_server_stream_close
 var _ = __grpc_server_bidirectional_open
 var _ = __grpc_server_bidirectional_recv
 var _ = __grpc_server_bidirectional_close
-
-func check(err error) bool {
-	if err == nil {
-		return false
-	}
-	if err, ok := err.(Error); ok {
-		errCode = err.Code()
-	} else {
-		errCode = codes.Unknown
-	}
-	setMsg([]byte(err.Error()))
-	return true
-}
-
-func getErr() (err error) {
-	if errCode == codes.OK {
-		return
-	}
-	return status.New(
-		errCode,
-		string(getMsg()),
-	).Err()
-}

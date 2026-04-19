@@ -28,6 +28,13 @@ var (
 	bsResp         = new(pb.BidirectionalStreamResponse)
 )
 
+func init() {
+	grpc_server.Init(
+		grpc_server.WithBufferCapMethod(128),
+		grpc_server.WithBufferCapMsg(1.5*1024*1024),
+	)
+}
+
 func main() {
 	counters = atomic.NewUint64Set(0)
 	counter1 = counters.Find(1)

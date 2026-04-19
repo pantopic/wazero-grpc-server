@@ -28,6 +28,10 @@ var (
 	bsResp         = new(pb.BidirectionalStreamResponse)
 )
 
+func init() {
+	grpc_server.Init()
+}
+
 func main() {
 	counters = atomic.NewUint64Set(0)
 	counter1 = counters.Find(1)

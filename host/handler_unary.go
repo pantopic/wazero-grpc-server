@@ -13,19 +13,17 @@ import (
 	"github.com/pantopic/wazero-pool"
 )
 
-func newHandlerFactoryUnary(_ *hostModule) handlerFactory {
-	return func(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
-		s := &handlerUnary{
-			ctx:    ctx,
-			meta:   meta,
-			method: method,
-			pool:   pool,
-			data:   make(chan resp),
-		}
-		s.ctx = context.WithValue(s.ctx, ctxKeyMeta, meta)
-		s.ctx = context.WithValue(s.ctx, ctxKeySend, s.send)
-		return s
+func handlerFactoryUnary(ctx context.Context, pool wazeropool.Instance, meta *meta, method string) grpc.ClientStream {
+	s := &handlerUnary{
+		ctx:    ctx,
+		meta:   meta,
+		method: method,
+		pool:   pool,
+		data:   make(chan resp),
 	}
+	s.ctx = context.WithValue(s.ctx, ctxKeyMeta, meta)
+	s.ctx = context.WithValue(s.ctx, ctxKeySend, s.send)
+	return s
 }
 
 type handlerUnary struct {
@@ -89,6 +87,7 @@ func (h *handlerUnary) RecvMsg(m any) (err error) {
 		}
 		err = proto.Unmarshal(resp.data, m.(proto.Message))
 	case <-h.ctx.Done():
+		close(h.data)
 	}
 	return
 }

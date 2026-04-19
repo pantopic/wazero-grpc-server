@@ -110,26 +110,24 @@ func (h *hostModule) ContextCopy(dst, src context.Context) context.Context {
 	return dst
 }
 
-type ctxCopyFunc func(dst, src context.Context) context.Context
-
 // RegisterServices attaches the grpc service(s) to the grpc server
 // Called once before server open, usually given a module instance pool
-func (h *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, copy ...ctxCopyFunc) error {
+func (h *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, ctxCopiers ...ContextCopier) error {
 	ctx = wazeropool.ContextSet(ctx, pool)
-	copy = append(copy, wazeropool.ContextCopy)
+	ctxCopiers = append(ctxCopiers, wazeropool.DefaultContextCopier)
 	meta := get[*meta](ctx, ctxKeyMeta)
 	pool.Run(func(mod api.Module) {
 		// Format: msg = "/package1.ServiceName/u.method1,c.method2/service2.ServiceName/s.method1,b.method2"
 		parts := strings.Split(string(getMsg(mod, meta)), "/")
 		for i := 1; i+2 <= len(parts); i += 2 {
-			h.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","), ctx, copy...)
+			h.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","), ctx, ctxCopiers...)
 		}
 	})
 	return nil
 }
 
-func (h *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string, ctx context.Context, copy ...ctxCopyFunc) {
-	handler := &grpcHandler{pool, meta, ctx, copy}
+func (h *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string, ctx context.Context, ctxCopiers ...ContextCopier) {
+	handler := &grpcHandler{pool, meta, ctx, ctxCopiers}
 	fakeDesc := &grpc.ServiceDesc{
 		ServiceName: serviceName,
 		HandlerType: (*any)(nil),
@@ -146,13 +144,13 @@ func (h *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, m
 		}
 		switch parts[0] {
 		case "u":
-			d.Handler = handler.handle(newHandlerFactoryUnary(h))
+			d.Handler = handler.handle(handlerFactoryUnary)
 		case "c":
-			d.Handler = handler.handle(newHandlerFactoryClientStream(h))
+			d.Handler = handler.handle(handlerFactoryClientStream)
 		case "s":
-			d.Handler = handler.handle(newHandlerFactoryServerStream(h))
+			d.Handler = handler.handle(handlerFactoryServerStream)
 		case "b":
-			d.Handler = handler.handle(newHandlerFactoryBidirectionalStream(h))
+			d.Handler = handler.handle(handlerFactoryBidirectionalStream)
 		}
 		fakeDesc.Streams = append(fakeDesc.Streams, d)
 	}

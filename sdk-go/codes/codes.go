@@ -1,3 +1,6 @@
+// Package codes defines the canonical error codes used by gRPC.
+// See https://grpc.io/docs/guides/status-codes/
+
 package codes
 
 import (

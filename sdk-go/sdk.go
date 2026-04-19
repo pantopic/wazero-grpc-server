@@ -77,20 +77,18 @@ func (s *Service) BidirectionalStream(name string,
 	return s
 }
 
-func Send(b []byte) (err error) {
+func Send(b []byte) error {
 	errCode = codes.OK
 	setMsg(b)
 	send()
-	err = getErr()
-	return
+	return getErr()
 }
 
-func SendErr(c codes.Code, b []byte) (err error) {
+func SendErr(c codes.Code, b []byte) error {
 	errCode = c
 	setMsg(b)
 	send()
-	err = getErr()
-	return
+	return getErr()
 }
 
 // func Close() (err error) {
