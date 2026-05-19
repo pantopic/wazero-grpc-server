@@ -232,6 +232,8 @@ func BenchmarkHostModule(b *testing.B) {
 	wasi_snapshot_preview1.MustInstantiate(ctx, r)
 	hostModule := New()
 	hostModule.Register(ctx, r)
+	modAtomic := wazero_atomic.New()
+	modAtomic.Register(ctx, r)
 	b.Run(`linear`, func(b *testing.B) {
 		for _, tc := range []struct {
 			name string

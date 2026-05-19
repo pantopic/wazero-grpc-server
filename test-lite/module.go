@@ -29,16 +29,12 @@ var (
 )
 
 func init() {
-	grpc_server.Init(
-		grpc_server.WithBufferCapMethod(128),
-		grpc_server.WithBufferCapMsg(1.5*1024*1024),
-	)
-}
-
-func main() {
 	counters = atomic.NewUint64Set(0)
 	counter1 = counters.Find(1)
 	counter2 = counters.Find(2)
+	grpc_server.Init(
+		grpc_server.WithBufferCap(128, 1.5*1024*1024),
+	)
 	grpc_server.NewService(`test.TestService`).
 		Unary(`Test`, test).
 		Unary(`Retest`, retest).
@@ -47,6 +43,8 @@ func main() {
 		ServerStream(`ServerStream`, ssOpen, ssClose).
 		BidirectionalStream(`BidirectionalStream`, bsOpen, bsRecv, bsClose)
 }
+
+func main() {}
 
 func test(b []byte) (err error) {
 	uTestReq.Reset()

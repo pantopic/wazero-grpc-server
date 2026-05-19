@@ -12,9 +12,9 @@ wasm-lite:
 	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=2 -gc=leaking -scheduler=none -o ../host/test-lite.wasm
 wasm-lite-prod:
 	@cd test-lite && tinygo build -buildmode=wasi-legacy -target=wasi -opt=s -gc=leaking -scheduler=none -o ../host/test-lite.prod.wasm -no-debug
-wasm: wasm-easy wasm-lite
+wasm: wasm-dev wasm-prod
+wasm-dev: wasm-easy wasm-lite
 wasm-prod: wasm-easy-prod wasm-lite-prod
-wasm-all: wasm wasm-prod
 
 test:
 	@cd host && go test . -v -cover

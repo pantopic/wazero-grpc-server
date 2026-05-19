@@ -30,8 +30,6 @@ var wasm []byte
 
 func main() {
 	ctx := context.Background()
-	grpcListener, _ := net.Listen(`tcp`, `:8000`)
-
 	runtime := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfig())
 	wasi_snapshot_preview1.MustInstantiate(ctx, runtime)
 
@@ -39,12 +37,13 @@ func main() {
 	hostModule.Register(ctx, runtime)
 
 	grpcServer := grpc.NewServer()
-
 	pool, err := wazeropool.New(ctx, runtime, wasm)
 	if err != nil {
 		panic(err)
 	}
 	hostModule.RegisterServices(ctx, grpcServer, pool)
+
+	grpcListener, _ := net.Listen(`tcp`, `:8000`)
 	grpcServer.Serve(grpcListener)
 
 	// ...
@@ -62,36 +61,36 @@ Then you can import the guest SDK into your WASI module to export your gRPC serv
 package main
 
 import (
-	proto "github.com/aperturerobotics/protobuf-go-lite"
+	"github.com/pantopic/wazero-grpc-server/sdk-go"
+	"github.com/pantopic/wazero-grpc-server/sdk-go/codes"
 
-	"github.com/pantopic/wazero-grpc-server/grpc-server-go"
 	"github.com/pantopic/wazero-grpc-server/test-lite/pb"
 )
 
-func main() {
-	s := grpc_server.NewService(`test.TestService`)
-	s.Unary(`Test`, protoWrap(test, &pb.TestRequest{}))
-	s.Unary(`Retest`, protoWrap(retest, &pb.RetestRequest{}))
-	s.ClientStream(`ClientStream`, protoWrapClientStream(clientStream, &pb.ClientStreamRequest{}))
+func init() {
+	grpc_server.Init()
+	grpc_server.NewService(`test.TestService`).
+		Unary(`Test`, test).
 }
 
-func test(req *pb.TestRequest) (res *pb.TestResponse, err error) {
-	return &pb.TestResponse{Bar: req.Foo}, nil
-}
+func main() {}
 
-func retest(req *pb.RetestRequest) (res *pb.RetestResponse, err error) {
-	return &pb.RetestResponse{Foo: req.Bar}, nil
-}
+var (
+	req  = new(pb.TestRequest)
+	resp = new(pb.TestResponse)
+)
 
-func clientStream(reqs iter.Seq[*pb.ClientStreamRequest]) (res *pb.ClientStreamResponse, err error) {
-	var n uint64
-	for req := range reqs {
-		n += req.Foo2
+func test(b []byte) (err error) {
+	req.Reset() 
+	if err = req.Unmarshal(b); err != nil {
+		err = status.New(codes.InvalidArgument, err.Error()).Err()
+		return
 	}
-	return &pb.ClientStreamResponse{Bar2: n}, nil
+	resp.Reset()
+	resp.Bar = req.Foo
+	return grpc_server.Send(resp.Marshal(nil))
 }
 
-// ...
 ```
 
 The [guest SDK](https://pkg.go.dev/github.com/pantopic/wazero-grpc-server/grpc-server-go) has no dependencies outside the Go std lib.
@@ -99,8 +98,8 @@ The guest SDK is serialization agnostic in order to provide users with more cont
 
 See examples for protobuf message serialization options:
 
-- [test-easy](/test-easy) - `easyproto` manually-generated (`97kb` binary, `3s` build time)
-- [test-lite](/test-lite) - `protobuf-go-lite` auto-generated (`97kb` binary, `3s` build time, recommended)
+- [test-easy](/test-easy) - `easyproto` manually-generated (`100kb` binary, `3s` build time)
+- [test-lite](/test-lite) - `protobuf-go-lite` auto-generated (`100kb` binary, `3s` build time, recommended)
 
 These options and others can be used for protobuf serialization in WASM but some standard approaches to protobuf
 serialization like `protoc-gen-go` require reflection which tinygo does not support.
