@@ -78,7 +78,11 @@ func (h *hostModule) Register(ctx context.Context, r wazero.Runtime) (err error)
 
 // InitContext retrieves the meta page from the wasm module
 func (h *hostModule) InitContext(ctx context.Context, m api.Module) (context.Context, error) {
-	stack, err := m.ExportedFunction(`__grpc_server`).Call(ctx)
+	fn := m.ExportedFunction(`__grpc_server`)
+	if fn == nil {
+		return ctx, nil
+	}
+	stack, err := fn.Call(ctx)
 	if err != nil {
 		return ctx, err
 	}
@@ -100,12 +104,14 @@ func (h *hostModule) InitContext(ctx context.Context, m api.Module) (context.Con
 
 // ContextCopy populates dst context with the meta page from src context.
 func (h *hostModule) ContextCopy(dst, src context.Context) context.Context {
-	dst = context.WithValue(dst, ctxKeyMeta, get[*meta](src, ctxKeyMeta))
-	if v := src.Value(ctxKeyNext); v != nil {
-		dst = context.WithValue(dst, ctxKeyNext, v.(chan []byte))
-	}
-	if v := src.Value(ctxKeySend); v != nil {
-		dst = context.WithValue(dst, ctxKeySend, v.(func([]byte, error)))
+	if v := src.Value(ctxKeyMeta); v != nil {
+		dst = context.WithValue(dst, ctxKeyMeta, v.(*meta))
+		if v := src.Value(ctxKeyNext); v != nil {
+			dst = context.WithValue(dst, ctxKeyNext, v.(chan []byte))
+		}
+		if v := src.Value(ctxKeySend); v != nil {
+			dst = context.WithValue(dst, ctxKeySend, v.(func([]byte, error)))
+		}
 	}
 	return dst
 }
@@ -117,8 +123,10 @@ func (h *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool 
 	ctxCopiers = append(ctxCopiers, wazeropool.DefaultContextCopier)
 	meta := get[*meta](ctx, ctxKeyMeta)
 	pool.Run(func(mod api.Module) {
-		// Format: msg = "/package1.ServiceName/u.method1,c.method2/service2.ServiceName/s.method1,b.method2"
-		parts := strings.Split(string(getMsg(mod, meta)), "/")
+		mod.ExportedFunction(`__grpc_server`).Call(ctx)
+		// Format: "/package1.ServiceName/u.method1,c.method2/service2.ServiceName/s.method1,b.method2"
+		msg := string(getMsg(mod, meta))
+		parts := strings.Split(msg, "/")
 		for i := 1; i+2 <= len(parts); i += 2 {
 			h.registerService(s, pool, meta, parts[i], strings.Split(parts[i+1], ","), ctx, ctxCopiers...)
 		}
