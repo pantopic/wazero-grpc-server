@@ -126,6 +126,10 @@ func (h *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool 
 	return nil
 }
 
+type ServiceRegistry interface {
+	RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, ctxCopiers ...ContextCopier) error
+}
+
 func (h *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string, ctx context.Context, ctxCopiers ...ContextCopier) {
 	handler := &grpcHandler{pool, meta, ctx, ctxCopiers}
 	fakeDesc := &grpc.ServiceDesc{
