@@ -118,9 +118,9 @@ func (h *hostModule) ContextCopy(dst, src context.Context) context.Context {
 
 // RegisterServices attaches the grpc service(s) to the grpc server
 // Called once before server open, usually given a module instance pool
-func (h *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, ctxCopiers ...ContextCopier) error {
+func (h *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, ctxCopiers ...ContextCopy) error {
 	ctx = wazeropool.ContextSet(ctx, pool)
-	ctxCopiers = append(ctxCopiers, wazeropool.DefaultContextCopier)
+	ctxCopiers = append(ctxCopiers, wazeropool.ContextCopy)
 	meta := get[*meta](ctx, ctxKeyMeta)
 	pool.Run(func(mod api.Module) {
 		mod.ExportedFunction(`__grpc_server`).Call(ctx)
@@ -135,10 +135,10 @@ func (h *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool 
 }
 
 type ServiceRegistry interface {
-	RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, ctxCopiers ...ContextCopier) error
+	RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, ctxCopiers ...ContextCopy) error
 }
 
-func (h *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string, ctx context.Context, ctxCopiers ...ContextCopier) {
+func (h *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string, ctx context.Context, ctxCopiers ...ContextCopy) {
 	handler := &grpcHandler{pool, meta, ctx, ctxCopiers}
 	fakeDesc := &grpc.ServiceDesc{
 		ServiceName: serviceName,

@@ -19,7 +19,7 @@ type grpcHandler struct {
 	pool wazeropool.Instance
 	meta *meta
 	ctx  context.Context
-	init []ContextCopier
+	init []ContextCopy
 }
 
 func (h *grpcHandler) handle(f handlerFactory) func(srv any, serverStream grpc.ServerStream) error {
@@ -31,7 +31,7 @@ func (h *grpcHandler) handle(f handlerFactory) func(srv any, serverStream grpc.S
 		ctx, cancel := context.WithCancel(serverStream.Context())
 		defer cancel()
 		for _, cc := range h.init {
-			ctx = cc.ContextCopy(ctx, h.ctx)
+			ctx = cc(ctx, h.ctx)
 		}
 		clientStream := f(ctx, h.pool, h.meta, fullMethodName)
 		errChanInbound := h.forwardInbound(serverStream, clientStream)

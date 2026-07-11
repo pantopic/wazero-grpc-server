@@ -76,7 +76,7 @@ func TestHostModule(t *testing.T) {
 					t.Fatalf(`%v`, err)
 				}
 			})
-			err = hostModule.RegisterServices(ctx, s, pool, modAtomic)
+			err = hostModule.RegisterServices(ctx, s, pool, modAtomic.ContextCopy)
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
