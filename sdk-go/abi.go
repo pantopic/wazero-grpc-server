@@ -1,6 +1,7 @@
 package grpc_server
 
 import (
+	"bytes"
 	"sort"
 	"strings"
 	"unsafe"
@@ -18,8 +19,11 @@ var (
 	msgCap    uint32 = 1 * 1024 * 1024
 	msgLen    uint32
 
-	services = map[string]*Service{}
+	services    = map[string]*Service{}
+	httpHandler httpHandlerFunc
 )
+
+type httpHandlerFunc func(method, path, body []byte) (code int, res []byte)
 
 func Init(opts ...Option) {
 	for _, opt := range opts {
@@ -204,6 +208,30 @@ func __grpc_server_bidirectional_close() {
 	check(err)
 }
 
+func getHttpMethod() (method, path []byte) {
+	parts := bytes.Split(getMethod(), []byte{' '})
+	if len(parts) != 2 {
+		errCode = codes.InvalidArgument
+		setMsg([]byte(`Invalid method: ` + string(getMethod())))
+		return
+	}
+	method = parts[0]
+	path = parts[1]
+	return
+}
+
+//export __grpc_server_http
+func __grpc_server_http() {
+	if httpHandler == nil {
+		errCode = codes.Code(405)
+		return
+	}
+	method, path := getHttpMethod()
+	code, b := httpHandler(method, path, getMsg())
+	setMsg(b)
+	errCode = codes.Code(code)
+}
+
 //go:wasm-module pantopic/wazero-grpc-server
 //export __grpc_server_send
 func send()
@@ -223,3 +251,4 @@ var _ = __grpc_server_server_stream_close
 var _ = __grpc_server_bidirectional_open
 var _ = __grpc_server_bidirectional_recv
 var _ = __grpc_server_bidirectional_close
+var _ = __grpc_server_http

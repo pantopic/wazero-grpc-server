@@ -8,3 +8,9 @@ func WithBufferCap(method, msg uint32) Option {
 		msgCap = msg
 	}
 }
+
+func WithHttpHandler(h httpHandlerFunc) Option {
+	return func() {
+		httpHandler = h
+	}
+}

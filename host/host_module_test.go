@@ -5,9 +5,12 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -59,7 +62,6 @@ func TestHostModule(t *testing.T) {
 		{`testWasmLiteProd`, testWasmLiteProd, 128, 1.5 * 1024 * 1024},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			s := grpc.NewServer()
 			cfg := wazero.NewModuleConfig().WithStdout(os.Stdout)
 			pool, err := wazeropool.New(ctx, r, tc.wasm,
 				wazeropool.WithModuleConfig(cfg))
@@ -76,10 +78,7 @@ func TestHostModule(t *testing.T) {
 					t.Fatalf(`%v`, err)
 				}
 			})
-			err = hostModule.RegisterServices(ctx, s, pool, modAtomic.ContextCopy)
-			if err != nil {
-				t.Fatalf(`%v`, err)
-			}
+			ctxCopy := []ContextCopy{modAtomic.ContextCopy}
 			pool.Run(func(mod api.Module) {
 				meta := get[*meta](ctx, ctxKeyMeta)
 				if readUint32(mod, meta.ptrMethodCap) != tc.bufCapMethod {
@@ -95,12 +94,8 @@ func TestHostModule(t *testing.T) {
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
-			go func() {
-				if err := s.Serve(lis); err != nil {
-					panic(err)
-				}
-			}()
-			defer s.Stop()
+			hostModule.ServerStart(ctx, lis, pool, ctxCopy...)
+			// defer hostModule.ServerStop(ctx, lis)
 			conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {
 				t.Fatalf(`%v`, err)
@@ -221,6 +216,45 @@ func TestHostModule(t *testing.T) {
 				if i != 9 {
 					t.Fatalf(`Expected 9 got %v`, i)
 				}
+			})
+			t.Run(`http`, func(t *testing.T) {
+				c := &http.Client{Timeout: time.Second}
+				t.Run(`GET`, func(t *testing.T) {
+					t.Run(`200`, func(t *testing.T) {
+						res, err := c.Get(fmt.Sprintf(`http://%s/hello`, addr))
+						if err != nil {
+							t.Fatalf(`%v`, err)
+						}
+						defer res.Body.Close()
+						if res.StatusCode != 200 {
+							t.Fatalf(`Incorrect status code: %d`, res.StatusCode)
+						}
+						b, err := io.ReadAll(res.Body)
+						if err != nil {
+							t.Fatalf(`%v`, err)
+						}
+						if string(b) != "world" {
+							t.Fatalf(`Incorrect response body: %s`, string(b))
+						}
+					})
+					t.Run(`410`, func(t *testing.T) {
+						res, err := c.Get(fmt.Sprintf(`http://%s/goodbye`, addr))
+						if err != nil {
+							t.Fatalf(`%v`, err)
+						}
+						defer res.Body.Close()
+						if res.StatusCode != 410 {
+							t.Fatalf(`Incorrect status code: %d`, res.StatusCode)
+						}
+						b, err := io.ReadAll(res.Body)
+						if err != nil {
+							t.Fatalf(`%v`, err)
+						}
+						if string(b) != "world" {
+							t.Fatalf(`Incorrect response body: %s`, string(b))
+						}
+					})
+				})
 			})
 		})
 	}

@@ -171,7 +171,7 @@ func (h *hostModule) ServerStart(ctx context.Context, lis net.Listener, pool waz
 		}
 	}()
 	httpServer := &http.Server{
-		Handler: grpcServer,
+		Handler: NewHttpHandler(ctx, grpcServer, pool),
 	}
 	go func() {
 		if err = httpServer.Serve(httpListener); err != nil {

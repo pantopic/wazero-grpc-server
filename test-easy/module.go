@@ -32,7 +32,9 @@ func init() {
 	counters = atomic.NewUint64Set(0)
 	counter1 = counters.Find(1)
 	counter2 = counters.Find(2)
-	grpc_server.Init()
+	grpc_server.Init(
+		grpc_server.WithHttpHandler(httpHandler),
+	)
 	grpc_server.NewService(`test.TestService`).
 		Unary(`Test`, test).
 		Unary(`Retest`, retest).
@@ -145,5 +147,17 @@ func bsRecv(b []byte) (err error) {
 }
 
 func bsClose() (err error) {
+	return
+}
+
+func httpHandler(method, path, body []byte) (code int, res []byte) {
+	switch string(path) {
+	case "/hello":
+		code = 200
+		res = append(res, "world"...)
+	case "/goodbye":
+		code = 410
+		res = append(res, "world"...)
+	}
 	return
 }
