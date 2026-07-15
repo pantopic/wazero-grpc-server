@@ -42,10 +42,11 @@ func (h *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		setMethod(mod, meta, []byte(r.Method+" "+r.URL.Path))
 		setMsg(mod, meta, body)
+		setErrCode(mod, meta, 0)
 		fn.Call(h.ctx)
 		if code := int(getErrCode(mod, meta)); code != 0 {
 			w.WriteHeader(code)
 		}
-		w.Write(getMsg(mod, meta))
+		w.Write(getMsgCopy(mod, meta))
 	})
 }

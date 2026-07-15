@@ -229,7 +229,7 @@ func __grpc_server_http() {
 	method, path := getHttpMethod()
 	code, b := httpHandler(method, path, getMsg())
 	setMsg(b)
-	errCode = codes.Code(code)
+	errCode = codes.Code(uint32(code))
 }
 
 //go:wasm-module pantopic/wazero-grpc-server
