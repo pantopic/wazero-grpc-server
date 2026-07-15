@@ -3,13 +3,18 @@ package wazero_grpc_server
 import (
 	"context"
 	"log"
+	"net"
+	"net/http"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/soheilhy/cmux"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
 	"github.com/pantopic/wazero-pool"
@@ -37,10 +42,13 @@ type hostModule struct {
 	sync.RWMutex
 
 	module api.Module
+	mux    map[net.Listener]cmux.CMux
 }
 
 func New(opts ...Option) (h *hostModule) {
-	h = &hostModule{}
+	h = &hostModule{
+		mux: make(map[net.Listener]cmux.CMux),
+	}
 	for _, opt := range opts {
 		opt(h)
 	}
@@ -134,8 +142,58 @@ func (h *hostModule) RegisterServices(ctx context.Context, s *grpc.Server, pool 
 	return nil
 }
 
-type ServiceRegistry interface {
-	RegisterServices(ctx context.Context, s *grpc.Server, pool wazeropool.Instance, ctxCopiers ...ContextCopy) error
+func (h *hostModule) ServiceType() string {
+	return `grpc`
+}
+
+func (h *hostModule) ServerStart(ctx context.Context, lis net.Listener, pool wazeropool.Instance, ctxCopy ...ContextCopy) (err error) {
+	var opts = []grpc.ServerOption{
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             5 * time.Second,
+			PermitWithoutStream: false,
+		}),
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			Time:    2 * time.Hour,
+			Timeout: 20 * time.Second,
+		}),
+	}
+	var grpcServer = grpc.NewServer(opts...)
+	err = h.RegisterServices(ctx, grpcServer, pool, ctxCopy...)
+	if err != nil {
+		return err
+	}
+	m := cmux.New(lis)
+	grpcListener := m.Match(cmux.HTTP2())
+	httpListener := m.Match(cmux.Any())
+	go func() {
+		if err = grpcServer.Serve(grpcListener); err != nil {
+			panic(err)
+		}
+	}()
+	httpServer := &http.Server{
+		Handler: grpcServer,
+	}
+	go func() {
+		if err = httpServer.Serve(httpListener); err != nil {
+			panic(err)
+		}
+	}()
+	go func() {
+		if err := m.Serve(); err != nil {
+			panic(err)
+		}
+	}()
+	h.mux[lis] = m
+	return
+}
+
+func (h *hostModule) ServerStop(ctx context.Context, lis net.Listener) (err error) {
+	m, ok := h.mux[lis]
+	if !ok {
+		return
+	}
+	m.Close()
+	return
 }
 
 func (h *hostModule) registerService(s *grpc.Server, pool wazeropool.Instance, meta *meta, serviceName string, methods []string, ctx context.Context, ctxCopiers ...ContextCopy) {
