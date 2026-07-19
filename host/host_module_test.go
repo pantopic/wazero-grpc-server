@@ -94,7 +94,7 @@ func TestHostModule(t *testing.T) {
 			if err != nil {
 				t.Fatalf(`%v`, err)
 			}
-			hostModule.ServerStart(ctx, lis, pool, ctxCopy...)
+			hostModule.ServerStart(ctx, lis, "", "", pool, ctxCopy...)
 			// defer hostModule.ServerStop(ctx, lis)
 			conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			if err != nil {

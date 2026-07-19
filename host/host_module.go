@@ -146,7 +146,7 @@ func (h *hostModule) ServiceType() string {
 	return `grpc`
 }
 
-func (h *hostModule) ServerStart(ctx context.Context, lis net.Listener, pool wazeropool.Instance, ctxCopy ...ContextCopy) (err error) {
+func (h *hostModule) ServerStart(ctx context.Context, lis net.Listener, tlsCrt, tlsKey string, pool wazeropool.Instance, ctxCopy ...ContextCopy) (err error) {
 	var opts = []grpc.ServerOption{
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             5 * time.Second,
@@ -174,6 +174,15 @@ func (h *hostModule) ServerStart(ctx context.Context, lis net.Listener, pool waz
 		Handler: NewHttpHandler(ctx, grpcServer, pool),
 	}
 	go func() {
+		if tlsCrt != "" && tlsKey != "" {
+			if err = httpServer.ServeTLS(httpListener, tlsCrt, tlsKey); err != nil {
+				panic(err)
+			}
+		} else {
+			if err = httpServer.Serve(httpListener); err != nil {
+				panic(err)
+			}
+		}
 		if err = httpServer.Serve(httpListener); err != nil {
 			panic(err)
 		}
