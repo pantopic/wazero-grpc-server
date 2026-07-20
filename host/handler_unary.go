@@ -87,7 +87,7 @@ func (h *handlerUnary) RecvMsg(m any) (err error) {
 		}
 		err = proto.Unmarshal(resp.data, m.(proto.Message))
 	case <-h.ctx.Done():
-		close(h.data)
+		// close(h.data)
 	}
 	return
 }
